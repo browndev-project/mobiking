@@ -1,0 +1,911 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'dart:math';
+
+import '../../../controllers/BottomNavController.dart';
+
+import '../../../controllers/cart_controller.dart';
+import '../../../data/product_model.dart';
+import '../../../themes/app_theme.dart';
+import '../../../utils/image_utils.dart';
+import 'app_star_rating.dart';
+
+import 'favorite_toggle_button.dart'; // Add this import
+
+import 'package:mobiking/app/modules/Product_page/product_page.dart';
+
+class AllProductGridCard extends StatelessWidget {
+  final ProductModel product;
+  final Function(ProductModel)? onTap;
+  final String heroTag;
+
+  const AllProductGridCard({
+    Key? key,
+    required this.product,
+    this.onTap,
+    required this.heroTag,
+  }) : super(key: key);
+
+  Widget _buildQuantitySelectorButton(
+    int totalQuantity,
+    ProductModel product,
+    CartController cartController,
+    BuildContext context,
+  ) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final bool hasMultipleVariants = product.variants.length > 1;
+
+    return Obx(() {
+      final isProcessing = cartController.processingProductId.value.startsWith(
+        product.id,
+      );
+
+      return Container(
+        height: 24, // Reduced height
+        decoration: BoxDecoration(
+          color: AppColors.success,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InkWell(
+              onTap: isProcessing
+                  ? null
+                  : () async {
+                      HapticFeedback.lightImpact();
+                      if (hasMultipleVariants) {
+                        _showVariantBottomSheet(context, product);
+                      } else {
+                        final cartItemsForProduct = cartController
+                            .getCartItemsForProduct(productId: product.id);
+                        if (cartItemsForProduct.isNotEmpty) {
+                          final singleVariantName =
+                              cartItemsForProduct.keys.first;
+                          await cartController.removeFromCart(
+                            productId: product.id,
+                            variantName: singleVariantName,
+                          );
+                        }
+                      }
+                    },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 2,
+                ), // Reduced horizontal padding
+                child: Icon(
+                  Icons.remove,
+                  color: AppColors.white,
+                  size: 14,
+                ), // Smaller icon
+              ),
+            ),
+            Flexible(
+              child: isProcessing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
+                  : _AnimatedQuantityText(
+                      quantity: totalQuantity,
+                      textStyle: textTheme.labelSmall?.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10, // Smaller font size
+                      ),
+                    ),
+            ),
+            InkWell(
+              onTap: isProcessing
+                  ? null
+                  : () async {
+                      HapticFeedback.lightImpact();
+                      if (hasMultipleVariants) {
+                        _showVariantBottomSheet(context, product);
+                      } else {
+                        final singleVariant = product.variants.entries
+                            .firstWhere((element) => element.value > 0);
+                        await cartController.addToCart(
+                          productId: product.id,
+                          variantName: singleVariant.key,
+                        );
+                      }
+                    },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 2,
+                ), // Reduced horizontal padding
+                child: Icon(
+                  Icons.add,
+                  color: AppColors.white,
+                  size: 14,
+                ), // Smaller icon
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildAddButtonWithVariantCount(
+    BuildContext context,
+    int availableVariantCount,
+    ProductModel product,
+    CartController cartController,
+  ) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    const double addBtnFixedWidth = 50.0; // Reduced width
+    const double buttonHeight = 24.0; // Reduced height
+
+    return Obx(() {
+      final isProcessing =
+          cartController.processingProductId.value ==
+          '${product.id}_${product.variants.entries.firstWhere((element) => element.value > 0).key}';
+
+      return SizedBox(
+        width: addBtnFixedWidth,
+        height: buttonHeight,
+        child: ElevatedButton(
+          onPressed: isProcessing
+              ? null
+              : () async {
+                  HapticFeedback.lightImpact();
+                  if (availableVariantCount > 1) {
+                    _showVariantBottomSheet(context, product);
+                  } else {
+                    final singleVariant = product.variants.entries.firstWhere(
+                      (element) => element.value > 0,
+                    );
+                    await cartController.addToCart(
+                      productId: product.id,
+                      variantName: singleVariant.key,
+                    );
+                  }
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.white,
+            foregroundColor: AppColors.success,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+              side: BorderSide(color: AppColors.success, width: 1.5),
+            ),
+            elevation: 0,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            minimumSize: Size.zero,
+          ),
+          child: isProcessing
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.success,
+                  ),
+                )
+              : FittedBox(
+                  // Wrap with FittedBox
+                  fit: BoxFit.scaleDown, // Add this
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize
+                        .min, // Corrected: Use min to size column to its children
+                    children: [
+                      Text(
+                        'ADD',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                      if (availableVariantCount > 1) ...[
+                        // Corrected: Adjusted padding and font size to prevent overflow
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 0.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '$availableVariantCount options',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 7, // Corrected: Smaller font size
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final cartController = Get.find<CartController>();
+
+    final hasImage = product.images.isNotEmpty && product.images[0].isNotEmpty;
+
+    double displayPrice = 0.0;
+    double? originalPrice = product.regularPrice?.toDouble();
+
+    if (product.sellingPrice.isNotEmpty &&
+        product.sellingPrice.last.price != null) {
+      displayPrice = product.sellingPrice.last.price!.toDouble();
+    }
+
+    final bool hasDiscount =
+        originalPrice != null &&
+        originalPrice > displayPrice &&
+        displayPrice > 0;
+    final double discountValue = hasDiscount
+        ? ((originalPrice! - displayPrice) / originalPrice) * 100
+        : 0;
+    String discountPercentage = hasDiscount ? '${discountValue.round()}%' : '';
+
+    final int sellingPrice = displayPrice.toInt();
+    final int actualPrice = (originalPrice ?? 0).toInt();
+
+    const double addBtnFixedWidth = 50.0;
+    const double buttonHeight = 24.0;
+
+    return RepaintBoundary(
+      child: Card(
+        elevation: 0,
+        color: Colors.transparent,
+        margin: const EdgeInsets.all(4.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.neutralBackground, width: 1),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            if (onTap != null) {
+              onTap!.call(product);
+            } else {
+              Get.find<BottomNavController>().isFabVisible.value = true;
+              Get.to(
+                () => ProductPage(product: product, heroTag: heroTag),
+                transition: Transition.fadeIn,
+                duration: const Duration(milliseconds: 300),
+              );
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 1.0,
+                child: Stack(
+                  children: [
+                    Hero(
+                      tag: heroTag,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            color: AppColors.neutralBackground,
+                            child: hasImage
+                                ? CachedNetworkImage(
+                                    imageUrl: getResizedImageUrl(
+                                      product.images[0],
+                                      200,
+                                    ),
+                                    fit: BoxFit.contain,
+                                    placeholder: (context, url) => Container(
+                                      color: AppColors.neutralBackground,
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 30,
+                                            color: AppColors.textLight,
+                                          ),
+                                        ),
+                                  )
+                                : Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 30,
+                                      color: AppColors.textLight,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Discount badge
+                    if (discountPercentage.isNotEmpty)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.success,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            discountPercentage,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    // ✅ FAVORITE BUTTON - Added in top-right corner
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: FavoriteToggleButton(
+                          productId: product.id.toString(),
+                          iconSize: 14,
+                          padding: 6,
+                        ),
+                      ),
+                    ),
+                    // Cart button
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: Obx(() {
+                        final variantQuantities =
+                            cartController.productVariantQuantities;
+
+                        int totalProductQuantityInCart = 0;
+                        for (var variantEntry in product.variants.entries) {
+                          final String quantityKey =
+                              '${product.id}_${variantEntry.key}';
+                          totalProductQuantityInCart +=
+                              variantQuantities[quantityKey] ?? 0;
+                        }
+
+                        final int availableVariantCount = product
+                            .variants
+                            .entries
+                            .where((entry) => entry.value > 0)
+                            .length;
+
+                        if (totalProductQuantityInCart > 0) {
+                          return _buildQuantitySelectorButton(
+                            totalProductQuantityInCart,
+                            product,
+                            cartController,
+                            context,
+                          );
+                        } else {
+                          if (availableVariantCount > 0) {
+                            return _buildAddButtonWithVariantCount(
+                              context,
+                              availableVariantCount,
+                              product,
+                              cartController,
+                            );
+                          } else {
+                            return SizedBox(
+                              width: addBtnFixedWidth,
+                              height: buttonHeight,
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: AppColors.neutralBackground
+                                      .withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Sold Out',
+                                  style: textTheme.labelSmall?.copyWith(
+                                    color: AppColors.textLight.withOpacity(0.7),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      }),
+                    ),
+                    // ✅ NEW: Out of Stock Overlay
+                    if (product.totalStock <= 0 && !product.variants.values.any((v) => v > 0))
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Text(
+                                'OUT OF STOCK',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  8.0,
+                  4.0,
+                  8.0,
+                  2.0,
+                ), // Reduced padding
+                child: Text(
+                  product.fullName,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10, // Smaller font size
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  8.0,
+                  2.0,
+                  8.0,
+                  4.0,
+                ), // Reduced bottom padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (product.averageRating != null &&
+                        product.reviewCount != null)
+                      Row(
+                        children: [
+                          ...List.generate(5, (index) {
+                            double filled = product.averageRating! - index;
+                            IconData iconData;
+                            if (filled >= 1) {
+                              iconData = Icons.star;
+                            } else if (filled >= 0.5) {
+                              iconData = Icons.star_half;
+                            } else {
+                              iconData = Icons.star_border;
+                            }
+                            return Icon(
+                              iconData,
+                              color: Colors.yellow,
+                              size: 10,
+                            );
+                          }),
+                          const SizedBox(width: 4),
+                          Text(
+                            product.averageRating!.toStringAsFixed(1),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.textDark,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '(${product.reviewCount!})',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          "₹$sellingPrice",
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark,
+                            fontSize: 12, // Smaller font size
+                          ),
+                        ),
+                        if (actualPrice > sellingPrice)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 4.0,
+                            ), // Reduced padding
+                            child: Text(
+                              "₹$actualPrice",
+                              style: textTheme.labelSmall?.copyWith(
+                                decoration: TextDecoration.lineThrough,
+                                color: AppColors.textLight,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10, // Smaller font size
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+}
+
+class _AnimatedQuantityText extends StatefulWidget {
+  final int quantity;
+  final TextStyle? textStyle;
+
+  const _AnimatedQuantityText({
+    Key? key,
+    required this.quantity,
+    this.textStyle,
+  }) : super(key: key);
+
+  @override
+  _AnimatedQuantityTextState createState() => _AnimatedQuantityTextState();
+}
+
+class _AnimatedQuantityTextState extends State<_AnimatedQuantityText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  late int _previousQuantity;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousQuantity = widget.quantity;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedQuantityText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.quantity != _previousQuantity) {
+      _controller.forward(from: 0.0);
+      _previousQuantity = widget.quantity;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: Text(
+        '${widget.quantity}',
+        style: widget.textStyle,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+// Variant bottom sheet implementation
+void _showVariantBottomSheet(BuildContext context, ProductModel product) {
+  final TextTheme textTheme = Theme.of(context).textTheme;
+  final CartController cartController = Get.find<CartController>();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext context) {
+      final List<MapEntry<String, int>> variantEntries = product
+          .variants
+          .entries
+          .where((entry) => entry.value > 0)
+          .toList();
+
+      return DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.25,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (BuildContext context, ScrollController scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.textLight.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                ),
+                Text(
+                  'Select a Variant',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: variantEntries.length,
+                    itemBuilder: (context, index) {
+                      final entry = variantEntries[index];
+                      final variantName = entry.key;
+                      final variantStock = entry.value;
+
+                      final String variantImageUrl = product.images.isNotEmpty
+                          ? product.images[0]
+                          : 'https://placehold.co/50x50/cccccc/ffffff?text=No+Img';
+
+                      return Card(
+                        color: AppColors.white,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: AppColors.neutralBackground,
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      variantName,
+                                      style: textTheme.titleSmall?.copyWith(
+                                        color: AppColors.textDark,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Obx(() {
+                                final currentVariantQuantity =
+                                    cartController
+                                        .productVariantQuantities['${product.id}_$variantName'] ??
+                                    0;
+                                final bool isProcessing =
+                                    cartController.processingProductId.value ==
+                                    '${product.id}_$variantName';
+
+                                if (currentVariantQuantity > 0) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 6,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        InkWell(
+                                          onTap: isProcessing
+                                              ? null
+                                              : () async {
+                                                  HapticFeedback.lightImpact();
+                                                  await cartController
+                                                      .removeFromCart(
+                                                        productId: product.id,
+                                                        variantName:
+                                                            variantName,
+                                                      );
+                                                },
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(4.0),
+                                            child: Icon(
+                                              Icons.remove,
+                                              color: AppColors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        isProcessing
+                                            ? const SizedBox(
+                                                width: 12,
+                                                height: 12,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: AppColors.white,
+                                                    ),
+                                              )
+                                            : Text(
+                                                '$currentVariantQuantity',
+                                                style: textTheme.labelSmall
+                                                    ?.copyWith(
+                                                      color: AppColors.white,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
+                                        const SizedBox(width: 4),
+                                        InkWell(
+                                          onTap: isProcessing
+                                              ? null
+                                              : () async {
+                                                  HapticFeedback.lightImpact();
+                                                  await cartController
+                                                      .addToCart(
+                                                        productId: product.id,
+                                                        variantName:
+                                                            variantName,
+                                                        product: product,
+                                                      );
+                                                },
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(4.0),
+                                            child: Icon(
+                                              Icons.add,
+                                              color: AppColors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else {
+                                  return SizedBox(
+                                    width: 60,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: isProcessing
+                                          ? null
+                                          : () async {
+                                              HapticFeedback.lightImpact();
+                                              await cartController.addToCart(
+                                                productId: product.id,
+                                                variantName: variantName,
+                                                product: product,
+                                              );
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.white,
+                                        foregroundColor: AppColors.success,
+                                        padding: EdgeInsets.zero,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          side: BorderSide(
+                                            color: AppColors.success,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        elevation: 0,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        minimumSize: Size.zero,
+                                      ),
+                                      child: Center(
+                                        child: isProcessing
+                                            ? SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: AppColors.success,
+                                                    ),
+                                              )
+                                            : Text(
+                                                'ADD',
+                                                style: textTheme.labelSmall
+                                                    ?.copyWith(
+                                                      color: AppColors.success,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}

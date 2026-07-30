@@ -1,0 +1,2401 @@
+// app/controllers/order_controller.dart
+
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:mobiking/app/controllers/user_controller.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:mobiking/app/controllers/connectivity_controller.dart';
+import 'package:mobiking/app/modules/Order_confirmation/Confirmation_screen.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+
+// Import your data models
+import '../data/AddressModel.dart';
+import '../data/Order_get_data.dart';
+import '../data/order_model.dart';
+import '../data/razor_pay.dart';
+
+// Import your controllers and services
+import '../controllers/cart_controller.dart';
+import '../controllers/address_controller.dart';
+import '../modules/address/AddressPage.dart';
+import '../services/order_service.dart';
+import '../themes/app_theme.dart';
+import '../utils/reasons.dart';
+import 'coupon_controller.dart';
+import '../data/product_model.dart';
+import '../services/analytics_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
+class RazorpayErrorCodes {
+  static const int PAYMENT_CANCELLED = 0;
+  static const int NETWORK_ERROR = 1;
+  static const int INVALID_CREDENTIALS = 2;
+  static const int AMOUNT_LIMIT_EXCEEDED = 3;
+  static const int BAD_REQUEST_ERROR = 4;
+  static const int SERVER_ERROR = 5;
+  static const int GATEWAY_ERROR = 6;
+}
+
+// Helper classes for better organization
+class UserInfo {
+  final String userId;
+  final String name;
+  final String email;
+  final String phone;
+
+  UserInfo({
+    required this.userId,
+    required this.name,
+    required this.email,
+    required this.phone,
+  });
+}
+
+class OrderTotals {
+  final double subtotal;
+  final double deliveryCharge;
+  final double discount;
+  final double total;
+
+  OrderTotals({
+    required this.subtotal,
+    required this.deliveryCharge,
+    required this.discount,
+    required this.total,
+  });
+}
+
+// FIXED: Helper function for themed snackbars with safe closing
+void _showModernSnackbar(
+  String title,
+  String message, {
+  IconData? icon,
+  Color? backgroundColor,
+  Color? textColor,
+  SnackPosition snackPosition = SnackPosition.TOP,
+  Duration? duration,
+  EdgeInsets? margin,
+  double? borderRadius,
+  bool isError = false,
+}) {
+  // FIXED: Removed the 'if (isError) return' which was blocking errors
+  // FIXED: Safer way to close existing snackbar
+  try {
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+  } catch (e) {
+    debugPrint('Warning: Error closing existing snackbar: $e');
+    // Continue anyway, don't let this block the new snackbar
+  }
+
+  // Add a small delay to ensure previous snackbar is fully closed
+  Future.delayed(const Duration(milliseconds: 100), () {
+    Get.snackbar(
+      '',
+      '',
+      titleText: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: textColor ?? Colors.white,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: textColor ?? Colors.white.withOpacity(0.9),
+        ),
+      ),
+      icon: icon != null
+          ? Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: textColor ?? Colors.white, size: 20),
+            )
+          : null,
+      snackPosition: snackPosition,
+      backgroundColor:
+          backgroundColor ??
+          (isError ? const Color(0xFFB00020) : const Color(0xFF1E88E5)),
+      colorText: textColor ?? Colors.white,
+      margin:
+          margin ?? const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      borderRadius: borderRadius ?? 16,
+      animationDuration: const Duration(milliseconds: 400),
+      duration: duration ?? const Duration(seconds: 3),
+      isDismissible: true,
+      shouldIconPulse: false,
+      forwardAnimationCurve: Curves.easeOutBack,
+      reverseAnimationCurve: Curves.easeInBack,
+      boxShadows: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 8,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  });
+}
+
+class OrderController extends GetxController with WidgetsBindingObserver {
+  final GetStorage _box = GetStorage();
+  final OrderService _orderService = Get.find();
+  final ConnectivityController _connectivityController = Get.find();
+  final CartController _cartController = Get.find();
+  final AddressController _addressController = Get.find();
+  final CouponController _couponController = Get.find();
+
+  var isLoading = false.obs;
+  var orderHistory = <OrderModel>[].obs;
+  var orderHistoryErrorMessage = ''.obs;
+  var gstNumber = ''.obs; // Add this line
+  late Razorpay _razorpay;
+
+  // FIXED: Store complete order data instead of just IDs
+  String? _currentBackendOrderId;
+  String? _currentRazorpayOrderId;
+  Map? _currentOrderData;
+  CreateOrderRequestModel? _currentOrderRequest;
+  Timer? _pollingTimer;
+
+  // ADDED: Store verified order ID directly from API response
+  final RxString _verifiedOrderId = ''.obs;
+  final RxMap<String, dynamic> _verifiedOrderData = <String, dynamic>{}.obs;
+
+  final RxBool isInitialLoading = true.obs;
+  final RxBool isLoadingOrderHistory = false.obs;
+
+  // NEW: Tracking for inventory restoration
+  Timer? _backgroundTimer;
+  bool _isPaymentProcessActive = false; // Flag to track if payment modal is open
+  static const String _ongoingOrderKey = 'pending_order_id_for_restore';
+
+  static const List STATUS_PROGRESS = [
+    "Picked Up",
+    "IN TRANSIT",
+    "Shipped",
+    "Delivered",
+    "Returned",
+    "CANCELLED",
+    "Cancelled",
+  ];
+
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this); // Add lifecycle observer
+    fetchOrderHistory();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    
+    /*
+    /*
+    // STARTUP CLEANUP: Check for orders abandoned from previous session (App Kill case)
+    _checkAndCleanupAbandonedOrder();
+    */
+    */
+
+    _connectivityController.isConnected.listen((connected) {
+      if (connected) {
+        _handleConnectionRestored();
+      }
+    });
+  }
+
+  /*
+  // Handle App Lifecycle Changes (Minimization case)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isPaymentProcessActive) return;
+
+    if (state == AppLifecycleState.paused) {
+      debugPrint('🕒 OrderController: App minimized. Starting 5-minute restoration timer.');
+      // Start 5-minute timer (300 seconds)
+      _backgroundTimer?.cancel();
+      _backgroundTimer = Timer(const Duration(minutes: 5), () {
+        if (_isPaymentProcessActive) {
+          debugPrint('⏰ OrderController: Background timeout reached. Restoring inventory automatically.');
+          _restoreInventoryIfPossible(reason: 'Background Timeout');
+        }
+      });
+    } else if (state == AppLifecycleState.resumed) {
+      debugPrint('☀️ OrderController: App resumed. Cancelling restoration timer.');
+      _backgroundTimer?.cancel();
+    }
+  }
+  */
+
+  // Startup cleanup for abandoned orders
+  Future<void> _checkAndCleanupAbandonedOrder() async {
+    final String? abandonedOrderId = _box.read(_ongoingOrderKey);
+    if (abandonedOrderId != null && abandonedOrderId.isNotEmpty) {
+      debugPrint('🏁 OrderController: Found abandoned order $abandonedOrderId on startup. Restoring inventory...');
+      // Wait a moment for services to initialize before calling API
+      Future.delayed(const Duration(seconds: 2), () {
+        /* _orderService.restoreInventory(abandonedOrderId).then((success) {
+          if (success) {
+            _box.remove(_ongoingOrderKey);
+            debugPrint('✅ OrderController: Abandoned order inventory successfully restored.');
+          }
+        }); */
+      });
+    }
+  }
+
+  // Unified helper for inventory restoration
+  Future<void> _restoreInventoryIfPossible({String reason = 'Unknown'}) async {
+    final String? orderIdToRestore = _currentBackendOrderId ?? _box.read(_ongoingOrderKey);
+    
+    if (orderIdToRestore != null && orderIdToRestore.isNotEmpty) {
+      /*
+      // Call Service (Already added restoreInventory to OrderService)
+      final success = await _orderService.restoreInventory(orderIdToRestore);
+      
+      if (success) {
+        debugPrint('✅ OrderController: Inventory restored successfully.');
+      } else {
+        debugPrint('⚠️ OrderController: Failed to restore inventory via API, but clearing state.');
+      }
+      */
+
+      // Cleanup local state
+      _isPaymentProcessActive = false;
+      _backgroundTimer?.cancel();
+      _box.remove(_ongoingOrderKey);
+      
+      // Optionally reset controller state
+      _currentBackendOrderId = null;
+      _currentRazorpayOrderId = null;
+    }
+  }
+
+  void resetGST() {
+    gstNumber.value = '';
+    print('OrderController: GST number reset');
+  }
+
+  Future _handleConnectionRestored() async {
+    final token = _box.read('token') ?? _box.read('accessToken');
+    if (token == null || token.toString().isEmpty) {
+      print('OrderController: Internet connection restored (Guest mode, skipping order fetch).');
+      return;
+    }
+    print(
+      'OrderController: Internet connection restored. Re-fetching order history...',
+    );
+    await fetchOrderHistory();
+  }
+
+  double _calculateSubtotal() {
+    double total = 0.0;
+    for (var item in _cartController.cartItems) {
+      final productData = item['productId'];
+      final quantity = (item['quantity'] as int?) ?? 1;
+      final itemVariantName =
+          item['variantName'] as String? ??
+          'Default'; // Get variant name from cart item
+      print(
+        'Calculating subtotal for item: ${productData['name']}, variant: $itemVariantName, quantity: $quantity',
+      );
+
+      if (productData is Map<String, dynamic>) {
+        final product = ProductModel.fromJson(productData);
+        print(
+          'Product selling prices: ${product.sellingPrice.map((e) => '${e.variantName}: ${e.price}').toList()}',
+        );
+
+        // Find the selling price for the specific variant
+        final sellingPriceForVariant = product.sellingPrice.firstWhereOrNull(
+          (sp) => sp.variantName == itemVariantName,
+        );
+
+        if (sellingPriceForVariant != null &&
+            sellingPriceForVariant.price != null) {
+          final itemPrice = sellingPriceForVariant.price!.toDouble();
+          print('Found matching variant. Price: $itemPrice');
+          total += itemPrice * quantity;
+        } else {
+          print('Variant not found. Using fallback.');
+          // Fallback if variant price not found, use last selling price if available
+          if (product.sellingPrice.isNotEmpty &&
+              product.sellingPrice.last.price != null) {
+            final itemPrice = product.sellingPrice.last.price!.toDouble();
+            print('Fallback price: $itemPrice');
+            total += itemPrice * quantity;
+          }
+        }
+      }
+    }
+    print('Total subtotal: $total');
+    return total;
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove lifecycle observer
+    _razorpay.clear();
+    _pollingTimer?.cancel();
+    _backgroundTimer?.cancel();
+    print('Razorpay listeners cleared.');
+    super.onClose();
+  }
+
+  // ENHANCED: Handle payment success with direct order ID extraction from API response
+  // SIMPLIFIED: Handle payment success - direct navigation without verification
+  Future _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    debugPrint('💚 === PAYMENT SUCCESS HANDLER STARTED ===');
+    debugPrint('💚 PaymentID: ${response.paymentId}');
+    debugPrint('💚 OrderID: ${response.orderId}');
+    debugPrint('💚 Signature: ${response.signature}');
+
+    isLoading.value = true;
+
+    try {
+      // ENHANCED: Validate that we have the required data
+      if (_currentBackendOrderId == null ||
+          _currentRazorpayOrderId == null ||
+          _currentOrderRequest == null) {
+        debugPrint('❌ CRITICAL: Missing required order data');
+        throw OrderServiceException(
+          'Missing order data for payment verification',
+          statusCode: 400,
+        );
+      }
+
+      // Validate Razorpay response
+      if (response.paymentId == null ||
+          response.orderId == null ||
+          response.signature == null) {
+        throw OrderServiceException(
+          'Incomplete payment response from Razorpay',
+          statusCode: 400,
+        );
+      }
+
+      // Verify that the Razorpay order ID matches what we expect
+      if (response.orderId != _currentRazorpayOrderId) {
+        debugPrint('❌ Razorpay Order ID mismatch!');
+        throw OrderServiceException(
+          'Order ID mismatch in payment response',
+          statusCode: 400,
+        );
+      }
+
+      // Create verification request
+      final verifyRequest = RazorpayVerifyRequest(
+        razorpayPaymentId: response.paymentId!,
+        razorpayOrderId: response.orderId!,
+        razorpaySignature: response.signature!,
+        orderId: _currentBackendOrderId!,
+      );
+
+      debugPrint('🔄 Verifying payment with backend...');
+
+      // Verify payment with backend
+      final verifiedOrder = await _orderService.verifyRazorpayPayment(
+        verifyRequest,
+      );
+      debugPrint('✅ Payment verification API response received');
+
+      // SIMPLIFIED: Just use the backend order ID that we already have
+      final extractedOrderId = _currentBackendOrderId!;
+      debugPrint('✅ Using backend order ID for navigation: $extractedOrderId');
+
+      // SIMPLIFIED: Create basic order data for confirmation screen
+      final completeOrderData = {
+        'orderId': extractedOrderId,
+        '_id': extractedOrderId,
+        'id': extractedOrderId,
+        'paymentMethod': 'online',
+        'paymentStatus': 'Paid',
+        'status': 'Pending',
+        'orderAmount': _currentOrderRequest!.orderAmount,
+        'subtotal': _currentOrderRequest!.subtotal,
+        'deliveryCharge': _currentOrderRequest!.deliveryCharge,
+        'gst': _currentOrderRequest!.gst,
+        'discount': _currentOrderRequest!.discount,
+        'customerName': _currentOrderRequest!.name,
+        'customerEmail': _currentOrderRequest!.email,
+        'customerPhone': _currentOrderRequest!.phoneNo,
+        'shippingAddress': _currentOrderRequest!.address,
+        'address': _addressController.selectedAddress.value?.toJson(),
+        'createdAt': DateTime.now().toIso8601String(),
+        'items': _currentOrderRequest!.items
+            .map((item) => item.toUIFallbackJson())
+            .toList(),
+
+        // Payment details
+        'paymentDetails': {
+          'razorpayPaymentId': response.paymentId,
+          'razorpayOrderId': response.orderId,
+          'razorpaySignature': response.signature,
+          'paymentMethod': 'online',
+          'amount': _currentOrderRequest!.orderAmount,
+          'currency': 'INR',
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      };
+
+      // Complete order success operations
+      await _completeOrderSuccess(completeOrderData, 'online');
+
+      // ✅ LOG ANALYTICS: Purchase
+      try {
+        final analyticsItems = _currentOrderRequest!.items
+            .map(
+              (item) => AnalyticsEventItem(
+                itemId: item.productId,
+                itemName: item.quantity
+                    .toString(), // The model seems to have basic details, often item.name is better but checking model
+                quantity: item.quantity,
+                price: item.price.toDouble(),
+              ),
+            )
+            .toList();
+
+        Get.find<AnalyticsService>().logPurchase(
+          amount: _currentOrderRequest!.orderAmount.toDouble(),
+          transactionId: extractedOrderId,
+          items: analyticsItems,
+        );
+      } catch (e) {
+        debugPrint('📊 Analytics Purchase Error: $e');
+      }
+
+      // Show success message
+
+      // SIMPLIFIED: Navigate directly to confirmation screen
+      debugPrint(
+        '🎉 Navigating to OrderConfirmationScreen with orderId: $extractedOrderId',
+      );
+
+      try {
+        if (Get.context != null) {
+          // Navigate back to the homepage (MainContainerScreen) and clear navigation stack until we reach it
+          // This preserves the home screen state while removing all checkout/payment screens
+          Get.until((route) => Get.currentRoute == '/MainContainerScreen' || route.isFirst);
+          
+          // Then push the confirmation screen on top of the existing home screen
+          Get.to(
+            () => OrderConfirmationScreen(
+              orderId: extractedOrderId,
+              orderData: completeOrderData,
+              address: _addressController.selectedAddress.value,
+            ),
+          );
+        } else {
+          throw Exception('Navigation context unavailable');
+        }
+      } catch (navigationError) {
+        debugPrint('❌ Navigation error: $navigationError');
+        _showModernSnackbar(
+          'Order Successful!',
+          'Your order #$extractedOrderId has been placed. Check order history for details.',
+          isError: false,
+          icon: Icons.check_circle_outline,
+          backgroundColor: Colors.green.shade600,
+          duration: const Duration(seconds: 8),
+        );
+      }
+    } on OrderServiceException catch (e) {
+      debugPrint(
+        '❌ OrderServiceException during payment verification: Status ${e.statusCode} - ${e.message}',
+      );
+      _showModernSnackbar(
+        'Payment Verification Failed',
+        'Payment was successful but verification failed. Please contact support with Payment ID: ${response.paymentId}',
+        isError: true,
+        icon: Icons.error_outline,
+        backgroundColor: Colors.orange.shade600,
+        duration: const Duration(seconds: 10),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Unexpected error during payment verification: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      _showModernSnackbar(
+        'Payment Processing Error',
+        'An error occurred while processing your payment. Please contact support.',
+        isError: true,
+        icon: Icons.error_outline,
+        backgroundColor: Colors.red.shade600,
+      );
+    } finally {
+      isLoading.value = false;
+      _isPaymentProcessActive = false;
+      _backgroundTimer?.cancel();
+      _box.remove(_ongoingOrderKey);
+      _resetOrderState();
+    }
+  }
+
+  // ADDED: Extract order ID directly from API response before model conversion
+  String? _extractOrderIdFromApiResponse(dynamic apiResponse) {
+    debugPrint('🔍 === EXTRACTING ORDER ID FROM API RESPONSE ===');
+
+    try {
+      // Handle different response types
+      Map<String, dynamic>? responseData;
+
+      if (apiResponse is Map<String, dynamic>) {
+        responseData = apiResponse;
+      } else if (apiResponse is Map) {
+        responseData = apiResponse.cast<String, dynamic>();
+      } else {
+        debugPrint('❌ Invalid API response type: ${apiResponse.runtimeType}');
+        return null;
+      }
+
+      debugPrint('🔍 API Response keys: ${responseData.keys.toList()}');
+
+      // Check for order data in the response structure
+      Map<String, dynamic>? orderData;
+
+      // Check if response has data.order structure
+      if (responseData.containsKey('data') && responseData['data'] is Map) {
+        final data = responseData['data'] as Map<String, dynamic>;
+        if (data.containsKey('order') && data['order'] is Map) {
+          orderData = data['order'] as Map<String, dynamic>;
+          debugPrint('✅ Found order data in data.order structure');
+        }
+      }
+
+      // Check if response is directly an order object
+      if (orderData == null && responseData.containsKey('_id')) {
+        orderData = responseData;
+        debugPrint('✅ Response is directly an order object');
+      }
+
+      if (orderData == null) {
+        debugPrint('❌ No order data found in API response');
+        return null;
+      }
+
+      debugPrint('🔍 Order data keys: ${orderData.keys.toList()}');
+      debugPrint('🔍 Order data: $orderData');
+
+      // Extract order ID from various possible fields
+      final orderId =
+          orderData['_id'] ?? orderData['orderId'] ?? orderData['id'];
+
+      if (orderId != null && orderId.toString().trim().isNotEmpty) {
+        final orderIdString = orderId.toString().trim();
+        debugPrint('✅ Successfully extracted order ID: $orderIdString');
+        return orderIdString;
+      } else {
+        debugPrint('❌ Order ID is null or empty in API response');
+        debugPrint('❌ _id: ${orderData['_id']}');
+        debugPrint('❌ orderId: ${orderData['orderId']}');
+        debugPrint('❌ id: ${orderData['id']}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error extracting order ID from API response: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+    }
+
+    return null;
+  }
+
+  // ADDED: Extract complete order data from API response
+  Map<String, dynamic> _extractOrderDataFromApiResponse(dynamic apiResponse) {
+    debugPrint('🔍 === EXTRACTING ORDER DATA FROM API RESPONSE ===');
+
+    try {
+      // Handle different response types
+      Map<String, dynamic>? responseData;
+
+      if (apiResponse is Map<String, dynamic>) {
+        responseData = apiResponse;
+      } else if (apiResponse is Map) {
+        responseData = apiResponse.cast<String, dynamic>();
+      } else {
+        debugPrint('❌ Invalid API response type: ${apiResponse.runtimeType}');
+        return {};
+      }
+
+      // Check for order data in the response structure
+      Map<String, dynamic>? orderData;
+
+      // Check if response has data.order structure
+      if (responseData.containsKey('data') && responseData['data'] is Map) {
+        final data = responseData['data'] as Map<String, dynamic>;
+        if (data.containsKey('order') && data['order'] is Map) {
+          orderData = data['order'] as Map<String, dynamic>;
+          debugPrint('✅ Found order data in data.order structure');
+        }
+      }
+
+      // Check if response is directly an order object
+      if (orderData == null && responseData.containsKey('_id')) {
+        orderData = responseData;
+        debugPrint('✅ Response is directly an order object');
+      }
+
+      if (orderData != null) {
+        debugPrint(
+          '✅ Successfully extracted order data with keys: ${orderData.keys.toList()}',
+        );
+        return Map<String, dynamic>.from(orderData);
+      } else {
+        debugPrint('❌ No order data found in API response');
+        return {};
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error extracting order data from API response: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      return {};
+    }
+  }
+
+  // ENHANCED: Build complete order data from API response
+  Future<Map<String, dynamic>> _buildCompleteOrderDataFromApiResponse({
+    required dynamic apiResponse,
+    required CreateOrderRequestModel orderRequest,
+    required PaymentSuccessResponse paymentResponse,
+    required String verifiedOrderId,
+  }) async {
+    try {
+      debugPrint('🔧 === BUILDING COMPLETE ORDER DATA FROM API RESPONSE ===');
+
+      // Get the verified order data
+      Map<String, dynamic> orderData = _extractOrderDataFromApiResponse(
+        apiResponse,
+      );
+
+      // Ensure we have the verified order ID
+      orderData['_id'] = verifiedOrderId;
+      orderData['orderId'] = verifiedOrderId;
+      orderData['id'] = verifiedOrderId;
+
+      // ENHANCED: Add all necessary fields for confirmation screen
+      orderData.addAll({
+        'paymentMethod': 'online',
+        'paymentStatus': 'Paid',
+        'status': orderData['status'] ?? 'Pending',
+        'orderAmount': orderRequest.orderAmount,
+        'subtotal': orderRequest.subtotal,
+        'deliveryCharge': orderRequest.deliveryCharge,
+        'gst': orderRequest.gst,
+        'discount': orderRequest.discount,
+        'customerName': orderRequest.name,
+        'customerEmail': orderRequest.email,
+        'customerPhone': orderRequest.phoneNo,
+        'shippingAddress': orderRequest.address,
+        'createdAt': orderData['createdAt'] ?? DateTime.now().toIso8601String(),
+        'items': orderRequest.items
+            .map((item) => item.toUIFallbackJson())
+            .toList(),
+
+        // Payment details
+        'paymentDetails': {
+          'razorpayPaymentId': paymentResponse.paymentId,
+          'razorpayOrderId': paymentResponse.orderId,
+          'razorpaySignature': paymentResponse.signature,
+          'paymentMethod': 'online',
+          'amount': orderRequest.orderAmount,
+          'currency': 'INR',
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+
+        // Order summary
+        'orderSummary': {
+          'itemCount': orderRequest.items.length,
+          'totalItems': orderRequest.items.fold(
+            0,
+            (sum, item) => sum + item.quantity,
+          ),
+          'subtotal': orderRequest.subtotal,
+          'deliveryCharge': orderRequest.deliveryCharge,
+          'gst': orderRequest.gst,
+          'discount': orderRequest.discount,
+          'finalAmount': orderRequest.orderAmount,
+        },
+      });
+
+      debugPrint('✅ Complete order data built successfully from API response');
+      debugPrint('🔍 Order ID: ${orderData['orderId']}');
+      debugPrint('🔍 Payment Method: ${orderData['paymentMethod']}');
+      debugPrint('🔍 Order Amount: ${orderData['orderAmount']}');
+
+      return orderData;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error building complete order data from API response: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      // Return minimal order data as fallback
+      return {
+        'orderId': verifiedOrderId,
+        '_id': verifiedOrderId,
+        'paymentMethod': 'online',
+        'status': 'Pending',
+        'orderAmount': orderRequest.orderAmount,
+        'createdAt': DateTime.now().toIso8601String(),
+        'error': 'Partial data available',
+      };
+    }
+  }
+
+  // ADDED: Method to fetch order details using stored verified order ID
+  Future<OrderModel?> fetchVerifiedOrderDetails() async {
+    if (_verifiedOrderId.value.isEmpty) {
+      debugPrint('❌ No verified order ID available');
+      return null;
+    }
+
+    try {
+      debugPrint(
+        '📞 Fetching order details for verified order ID: ${_verifiedOrderId.value}',
+      );
+      final orderDetails = await _orderService.getOrderDetails(
+        orderId: _verifiedOrderId.value,
+      );
+
+      debugPrint('✅ Successfully fetched order details');
+      return orderDetails;
+        } catch (e) {
+      debugPrint('❌ Error fetching verified order details: $e');
+      return null;
+    }
+  }
+
+  // Getters for verified order data
+  String get verifiedOrderId => _verifiedOrderId.value;
+  Map<String, dynamic> get verifiedOrderData => _verifiedOrderData.value;
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    debugPrint('❌ === PAYMENT ERROR HANDLER ===');
+    debugPrint('❌ Code: ${response.code}');
+    debugPrint('❌ Message: ${response.message}');
+
+    isLoading.value = false;
+    String errorMessage = 'Payment failed. Please try again.';
+
+    // Case 1: Handle user cancellation explicitly
+    if (response.code == RazorpayErrorCodes.PAYMENT_CANCELLED) {
+      errorMessage = 'Payment was cancelled by user.';
+      // _restoreInventoryIfPossible(reason: 'User Cancelled');
+    } else {
+      // For any other error, we still want to clear the active payment flag 
+      // but we might not restore inventory immediately to allow for potential retry UI
+      // However, to keep it simple and safe as per client requirements:
+      _isPaymentProcessActive = false;
+      _backgroundTimer?.cancel();
+      _box.remove(_ongoingOrderKey);
+    }
+    
+    _resetOrderState();
+
+    // FIXED: Use custom error codes instead of Razorpay constants
+    switch (response.code) {
+      case RazorpayErrorCodes.PAYMENT_CANCELLED:
+        errorMessage = 'Payment was cancelled by user.';
+        break;
+      case RazorpayErrorCodes.NETWORK_ERROR:
+        errorMessage = 'Network error. Please check your connection.';
+        break;
+      case RazorpayErrorCodes.INVALID_CREDENTIALS:
+        errorMessage = 'Invalid payment credentials. Please contact support.';
+        break;
+      case RazorpayErrorCodes.AMOUNT_LIMIT_EXCEEDED:
+        errorMessage = 'Payment amount exceeds limit.';
+        break;
+      case RazorpayErrorCodes.BAD_REQUEST_ERROR:
+        errorMessage = 'Invalid payment request. Please try again.';
+        break;
+      case RazorpayErrorCodes.SERVER_ERROR:
+        errorMessage = 'Payment server error. Please try again later.';
+        break;
+      case RazorpayErrorCodes.GATEWAY_ERROR:
+        errorMessage = 'Payment gateway error. Please try again.';
+        break;
+      default:
+        if (response.message != null && response.message!.isNotEmpty) {
+          errorMessage = response.message!;
+        }
+    }
+
+    _showModernSnackbar(
+      'Payment Failed',
+      errorMessage,
+      isError: true,
+      icon: Icons.error_outline,
+      backgroundColor: Colors.red.shade600,
+      duration: const Duration(seconds: 10),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    debugPrint('🪙 External Wallet Selected: ${response.walletName}');
+    _showInfoSnackbar(
+      'External Wallet Selected!',
+      'Wallet: ${response.walletName ?? 'Unknown'}',
+      Icons.account_balance_wallet_outlined,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  // Main placeOrder method - OPTIMIZED
+  Future placeOrder({required String method}) async {
+    await _resetOrderState();
+    debugPrint('--- placeOrder method called with method: $method ---');
+
+    // Early validation checks
+    if (!await _validateOrderPrerequisites()) return;
+
+    // Get and validate user info
+    final UserInfo? userInfo = await _validateAndGetUserInfo();
+    if (userInfo == null) return;
+
+    // Build order request
+    final CreateOrderRequestModel? orderRequest = await _buildOrderRequest(
+      userInfo: userInfo,
+      method: method,
+    );
+    if (orderRequest == null) return;
+
+    // Store order request for later use
+    _currentOrderRequest = orderRequest;
+
+    // Process order based on payment method
+    await _processOrder(method: method, orderRequest: orderRequest);
+  }
+
+  // FIXED: Reset order state and internal flags
+  Future _resetOrderState() async {
+    _currentBackendOrderId = null;
+    _currentRazorpayOrderId = null;
+    _currentOrderData = null;
+    _currentOrderRequest = null;
+    _verifiedOrderId.value = '';
+    _verifiedOrderData.clear();
+    isLoading.value = false;
+    
+    // Safety: ensure flags are reset
+    _isPaymentProcessActive = false;
+    _backgroundTimer?.cancel();
+    _box.remove(_ongoingOrderKey);
+  }
+
+  // Validate basic order prerequisites
+  Future<bool> _validateOrderPrerequisites() async {
+    if (_cartController.cartItems.isEmpty) {
+      debugPrint('🛑 Cart is empty. Aborting order placement.');
+      _showModernSnackbar(
+        'Cart Empty',
+        'Please add items to your cart before placing an order.',
+        isError: true,
+        icon: Icons.shopping_cart_outlined,
+      );
+      return false;
+    }
+
+    final AddressModel? address = _addressController.selectedAddress.value;
+    if (address == null) {
+      debugPrint('🛑 Address is null. Aborting order placement.');
+      _showModernSnackbar(
+        'Address Required',
+        'Please select a delivery address.',
+        isError: true,
+        icon: Icons.location_on_outlined,
+      );
+      return false;
+    }
+
+    debugPrint(
+      '✅ Prerequisites validated - Cart: ${_cartController.cartItems.length} items, Address: ${address.street}',
+    );
+    return true;
+  }
+
+  // Validate and get user info
+  Future<UserInfo?> _validateAndGetUserInfo() async {
+    final userController = Get.find<UserController>();
+    Map user = Map.from(_box.read('user') ?? {});
+    String? userId = user['_id'];
+    String? name = userController.userName.value;
+    String? email = user['email'];
+    String? phone = (user['phoneNo'] ?? user['phone'])?.toString();
+
+    if (_isUserInfoIncomplete(userId, name, email, phone)) {
+      debugPrint('⚠️ User info incomplete. Navigating to AddressPage...');
+      Get.to(() => AddressPage());
+      return null;
+    }
+
+    debugPrint(
+      '✅ User info verified: ID=$userId, Name=$name, Email=$email, Phone=$phone',
+    );
+    return UserInfo(userId: userId!, name: name!, email: email!, phone: phone!);
+  }
+
+  // Check if user info is incomplete
+  bool _isUserInfoIncomplete(
+    String? userId,
+    String? name,
+    String? email,
+    String? phone,
+  ) {
+    return [
+      userId,
+      name,
+      email,
+      phone,
+    ].any((field) => field == null || field.trim().isEmpty);
+  }
+
+  // Build order request
+  Future<CreateOrderRequestModel?> _buildOrderRequest({
+    required UserInfo userInfo,
+    required String method,
+  }) async {
+    final cartId = _cartController.cartData['_id'];
+    if (cartId == null) {
+      debugPrint('🛑 Cart ID is null. Aborting order placement.');
+      _showModernSnackbar(
+        'Cart Error',
+        'Cart data is invalid. Please refresh and try again.',
+        isError: true,
+        icon: Icons.error_outline,
+      );
+      return null;
+    }
+
+    final List<CreateOrderItemRequestModel> orderItems = _buildOrderItems();
+    if (orderItems.isEmpty) {
+      debugPrint('🛑 No valid order items found. Aborting.');
+      _showModernSnackbar(
+        'Invalid Items',
+        'No valid items found in cart.',
+        isError: true,
+        icon: Icons.error_outline,
+      );
+      return null;
+    }
+
+    final OrderTotals totals = _calculateOrderTotals();
+    final AddressModel address = _addressController.selectedAddress.value!;
+    final List<String?> parts = [
+      address.street,
+      address.city,
+      address.state,
+      address.pinCode,
+    ];
+    debugPrint('Address parts: $parts');
+    final String fullAddress = parts
+        .where((part) => part != null && part.trim().isNotEmpty)
+        .join(', ');
+    debugPrint('Full address: $fullAddress');
+    final String? addressId = _addressController.selectedAddress.value?.id;
+    if (addressId == null) {
+      debugPrint('🛑 Address ID is null. Aborting order placement.');
+      _showModernSnackbar(
+        'Address Error',
+        'Address ID is missing. Please select an address again.',
+        isError: true,
+        icon: Icons.error_outline,
+      );
+      return null;
+    }
+    final bool isCouponApplied = _couponController.isCouponApplied.value;
+    final String? couponId = isCouponApplied
+        ? _couponController.selectedCoupon.value?.id
+        : null;
+
+    debugPrint(
+      '✅ Order request built - Items: ${orderItems.length}, Total: ${totals.total}',
+    );
+
+    final orderRequest = CreateOrderRequestModel(
+      userId: CreateUserReferenceRequestModel(
+        id: userInfo.userId,
+        email: userInfo.email,
+        phoneNo: userInfo.phone,
+      ),
+      cartId: cartId,
+      name: userInfo.name,
+      email: userInfo.email,
+      phoneNo: userInfo.phone,
+      orderAmount: totals.total,
+      discount: totals.discount,
+      deliveryCharge: totals.deliveryCharge,
+      gst: gstNumber.value, // Add this line
+      subtotal: totals.subtotal,
+      address: fullAddress,
+      method: method,
+      items: orderItems,
+      addressId: addressId,
+      coupon: couponId,
+      couponCode: isCouponApplied ? _couponController.selectedCoupon.value?.code : null,
+      discountAmount: isCouponApplied ? _couponController.discountAmount.value : 0.0,
+    );
+
+    debugPrint('Order Request Data: ${orderRequest.toJson()}');
+
+    return orderRequest;
+  }
+
+  // Calculate order totals
+  OrderTotals _calculateOrderTotals() {
+    final double subtotal = _calculateSubtotal();
+    final double deliveryCharge = _cartController.calculateDeliveryCharge();
+    final double discount = _couponController.isCouponApplied.value
+        ? _couponController.discountAmount.value
+        : 0.0;
+    final double total = subtotal + deliveryCharge - discount;
+
+    return OrderTotals(
+      subtotal: subtotal,
+      deliveryCharge: deliveryCharge,
+      discount: discount,
+      total: total,
+    );
+  }
+
+  // Build order items from cart
+  List<CreateOrderItemRequestModel> _buildOrderItems() {
+    final List<CreateOrderItemRequestModel> orderItems = [];
+
+    for (var cartItem in _cartController.cartItems) {
+      final productData = cartItem['productId'] as Map?;
+      if (productData == null) {
+        debugPrint('Warning: Product data is null for cart item: $cartItem');
+        continue;
+      }
+
+      final String productId = productData['_id'] as String? ?? '';
+      if (productId.isEmpty) {
+        debugPrint('Warning: Product ID missing for cart item: $cartItem');
+        continue;
+      }
+
+      final String variantName =
+          cartItem['variantName'] as String? ?? 'Default';
+      final int quantity = (cartItem['quantity'] as num?)?.toInt() ?? 1;
+      final double itemPrice = _extractItemPrice(productData, productId);
+
+      // Robust product name extraction
+      String productName = 'Product';
+      if (productData['fullName'] != null &&
+          productData['fullName'].toString().trim().isNotEmpty) {
+        productName = productData['fullName'].toString().trim();
+      } else if (productData['name'] != null &&
+          productData['name'].toString().trim().isNotEmpty) {
+        productName = productData['name'].toString().trim();
+      } else if (productData['productName'] != null &&
+          productData['productName'].toString().trim().isNotEmpty) {
+        productName = productData['productName'].toString().trim();
+      } else if (productData['title'] != null &&
+          productData['title'].toString().trim().isNotEmpty) {
+        productName = productData['title'].toString().trim();
+      }
+
+      // Robust image extraction
+      final List images = productData['images'] as List? ?? [];
+      String? productImage;
+      if (images.isNotEmpty) {
+        productImage = images.first?.toString();
+      } else if (productData['image'] != null &&
+          productData['image'].toString().isNotEmpty) {
+        productImage = productData['image'].toString();
+      } else if (productData['thumbnail'] != null &&
+          productData['thumbnail'].toString().isNotEmpty) {
+        productImage = productData['thumbnail'].toString();
+      }
+
+      debugPrint(
+        '🛒 Item extraction: "$productName" ($variantName) - ID: $productId',
+      );
+
+      orderItems.add(
+        CreateOrderItemRequestModel(
+          productId: productId,
+          variantName: variantName,
+          quantity: quantity,
+          price: itemPrice,
+          productName: productName,
+          productImage: productImage,
+        ),
+      );
+    }
+
+    debugPrint(
+      '✅ Built ${orderItems.length} order items from ${_cartController.cartItems.length} cart items',
+    );
+    return orderItems;
+  }
+
+  // Extract item price from product data
+  double _extractItemPrice(Map productData, String productId) {
+    if (productData.containsKey('sellingPrice') &&
+        productData['sellingPrice'] is List) {
+      final List sellingPricesList = productData['sellingPrice'];
+      if (sellingPricesList.isNotEmpty && sellingPricesList[0] is Map) {
+        return (sellingPricesList[0]['price'] as num?)?.toDouble() ?? 0.0;
+      }
+    }
+    debugPrint('Warning: Could not extract price for product: $productId');
+    return 0.0;
+  }
+
+  // Process order based on payment method
+  Future _processOrder({
+    required String method,
+    required CreateOrderRequestModel orderRequest,
+  }) async {
+    try {
+      isLoading.value = true;
+      debugPrint('🚀 Processing $method order...');
+
+      switch (method.toUpperCase()) {
+        case 'COD':
+          await _processCODOrder(orderRequest);
+          break;
+        case 'ONLINE':
+          await _processOnlineOrder(orderRequest);
+          break;
+        default:
+          throw OrderServiceException(
+            'Invalid payment method: $method',
+            statusCode: 400,
+          );
+      }
+    } on OrderServiceException catch (e) {
+      debugPrint(
+        '❌ OrderServiceException: Status ${e.statusCode} - ${e.message}',
+      );
+      if (e.message == 'Cart is empty or not found.') {
+        await _cartController.fetchAndLoadCartData();
+      } else {
+        _showModernSnackbar(
+          'Order Error',
+          e.message,
+          isError: true,
+          icon: Icons.error_outline,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Unexpected Exception: $e');
+      _showModernSnackbar(
+        'Unexpected Error',
+        'An unexpected error occurred. Please try again.',
+        isError: true,
+        icon: Icons.error_outline,
+      );
+    } finally {
+      if (method.toUpperCase() != 'ONLINE') {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  // FIXED: Process COD order with enhanced error handling
+  Future _processCODOrder(CreateOrderRequestModel orderRequest) async {
+    try {
+      if (orderRequest.orderAmount > 5000) {
+        debugPrint(
+          '🛑 COD not allowed for orders above ₹5000. Total: ${orderRequest.orderAmount}',
+        );
+        Fluttertoast.showToast(
+          msg: "Orders above ₹5000 cannot use Cash on Delivery.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        return;
+      }
+
+      // Show confirmation dialog for COD
+      final bool? confirmed = await Get.dialog<bool>(
+        Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10.0,
+                  offset: const Offset(0.0, 10.0),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryPurple.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: AppColors.primaryPurple,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Confirm COD Order',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'You are about to place a Cash on Delivery order for ₹${orderRequest.orderAmount.toStringAsFixed(0)}. Do you want to proceed?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMedium,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(Get.context!).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.textMedium,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(Get.context!).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryPurple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Confirm',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      if (confirmed == null || !confirmed) {
+        isLoading.value = false; // Reset loading state if cancelled
+        debugPrint('🛑 COD order cancelled by user.');
+        return; // Abort order placement
+      }
+
+      debugPrint('🚀 Placing COD order...');
+      final createdOrder = await _orderService.placeCodOrder(orderRequest);
+      debugPrint('✅ COD order API response received');
+
+      // ENHANCED: Validate order creation
+      final extractedOrderId = _extractOrderId(createdOrder);
+      if (extractedOrderId == null || extractedOrderId.isEmpty) {
+        debugPrint('❌ CRITICAL: No order ID found in response');
+        throw OrderServiceException(
+          'COD Order placement failed: No Order ID returned from backend.',
+          statusCode: 500,
+        );
+      }
+
+      debugPrint('✅ COD order created successfully with ID: $extractedOrderId');
+
+      // Build complete order data
+      final completeOrderData = await _buildCompleteOrderDataForCOD(
+        createdOrder: createdOrder,
+        orderRequest: orderRequest,
+      );
+
+      // Complete order success operations
+      await _completeOrderSuccess(completeOrderData, 'COD');
+
+      // Show success message
+      _showModernSnackbar(
+        'Order Placed! Awaiting Confirmation Call',
+        'Your order #$extractedOrderId has been placed successfully. You will receive a call for confirmation shortly.',
+        isError: false,
+        icon: Icons.phone_callback_outlined,
+        backgroundColor: Colors.blueAccent.shade400,
+        duration: const Duration(seconds: 10),
+      );
+
+      // FIXED: Navigate to confirmation screen with validated data
+      debugPrint(
+        '🎉 Navigating to OrderConfirmationScreen with orderId: $extractedOrderId',
+      );
+
+      // Wait a moment to ensure data is written
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Navigate back to root/home and push confirmation
+      Get.until((route) => route.isFirst);
+      Get.to(
+        () => OrderConfirmationScreen(
+          orderId: extractedOrderId,
+          orderData: completeOrderData,
+          address: _addressController.selectedAddress.value,
+        ),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in _processCODOrder: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // ADDED: Build complete order data for COD orders
+  Future<Map<String, dynamic>> _buildCompleteOrderDataForCOD({
+    required dynamic createdOrder,
+    required CreateOrderRequestModel orderRequest,
+  }) async {
+    try {
+      // Start with created order data
+      Map<String, dynamic> orderData;
+      if (createdOrder is Map<String, dynamic>) {
+        orderData = createdOrder;
+      } else if (createdOrder is Map) {
+        orderData = createdOrder.cast<String, dynamic>();
+      } else {
+        try {
+          orderData = createdOrder.toJson();
+        } catch (e) {
+          debugPrint('⚠️ Could not convert createdOrder to JSON: $e');
+          orderData = <String, dynamic>{};
+        }
+      }
+
+      // Extract order ID
+      final orderId = _extractOrderId(createdOrder);
+
+      // ENHANCED: Add missing fields that might be needed by confirmation screen
+      orderData.addAll({
+        'orderId': orderId,
+        '_id': orderId,
+        'id': orderId,
+        'paymentMethod': 'COD',
+        'paymentStatus': 'Pending',
+        'status': orderData['status'] ?? 'Pending',
+        'orderAmount': orderRequest.orderAmount,
+        'subtotal': orderRequest.subtotal,
+        'deliveryCharge': orderRequest.deliveryCharge,
+        'gst': orderRequest.gst,
+        'discount': orderRequest.discount,
+        'customerName': orderRequest.name,
+        'customerEmail': orderRequest.email,
+        'customerPhone': orderRequest.phoneNo,
+        'shippingAddress': orderRequest.address,
+        'address': _addressController.selectedAddress.value?.toJson(),
+        'createdAt': orderData['createdAt'] ?? DateTime.now().toIso8601String(),
+        'items': orderRequest.items
+            .map((item) => item.toUIFallbackJson())
+            .toList(),
+
+        // COD specific details
+        'paymentDetails': {
+          'paymentMethod': 'COD',
+          'amount': orderRequest.orderAmount,
+          'currency': 'INR',
+          'status': 'Pending',
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+
+        // Order summary
+        'orderSummary': {
+          'itemCount': orderRequest.items.length,
+          'totalItems': orderRequest.items.fold(
+            0,
+            (sum, item) => sum + item.quantity,
+          ),
+          'subtotal': orderRequest.subtotal,
+          'deliveryCharge': orderRequest.deliveryCharge,
+          'gst': orderRequest.gst,
+          'discount': orderRequest.discount,
+          'finalAmount': orderRequest.orderAmount,
+        },
+      });
+
+      debugPrint('✅ Complete COD order data built successfully');
+      return orderData;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error building complete COD order data: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      // Return minimal order data as fallback
+      return {
+        'orderId': _extractOrderId(createdOrder),
+        '_id': _extractOrderId(createdOrder),
+        'paymentMethod': 'COD',
+        'status': 'Pending',
+        'orderAmount': orderRequest.orderAmount,
+        'createdAt': DateTime.now().toIso8601String(),
+        'error': 'Partial data available',
+      };
+    }
+  }
+
+  // FIXED: Process online order with better error handling
+  Future _processOnlineOrder(CreateOrderRequestModel orderRequest) async {
+    try {
+      debugPrint('🚀 === INITIATING ONLINE ORDER ===');
+      debugPrint('🚀 Order request: ${jsonEncode(orderRequest.toJson())}');
+
+      // Call the order service to create the order and get Razorpay details
+      final dynamic rawResponse = await _orderService.initiateOnlineOrder(
+        orderRequest,
+      );
+      debugPrint('✅ Raw online payment response received');
+      debugPrint('✅ Response type: ${rawResponse.runtimeType}');
+      debugPrint('✅ Raw response: $rawResponse');
+
+      // Handle different response types
+      Map<String, dynamic> response;
+      if (rawResponse is Map<String, dynamic>) {
+        response = rawResponse;
+      } else if (rawResponse is Map) {
+        response = rawResponse.cast<String, dynamic>();
+      } else {
+        debugPrint('❌ Invalid response type: ${rawResponse.runtimeType}');
+        throw OrderServiceException(
+          'Invalid response type from server',
+          statusCode: 400,
+        );
+      }
+
+      // Store the complete response for debugging
+      _currentOrderData = response;
+
+      // Validate the response from backend
+      final paymentData = _validateOnlinePaymentResponse(response);
+      if (paymentData == null) {
+        throw OrderServiceException(
+          'Invalid payment response from server',
+          statusCode: 400,
+        );
+      }
+
+      // Extract and store order IDs
+      _currentBackendOrderId =
+          paymentData['orderId'] ??
+          paymentData['newOrderId'] ??
+          response['orderId'] ??
+          response['newOrderId'];
+      _currentRazorpayOrderId = paymentData['razorpayOrderId'];
+
+      debugPrint('💳 Order IDs extracted and stored:');
+      debugPrint('💳 Backend Order ID: $_currentBackendOrderId');
+      debugPrint('💳 Razorpay Order ID: $_currentRazorpayOrderId');
+
+      // Validate that we have the required IDs
+      if (_currentBackendOrderId == null || _currentRazorpayOrderId == null) {
+        debugPrint('❌ Missing IDs after extraction:');
+        debugPrint('❌ Backend: $_currentBackendOrderId');
+        debugPrint('❌ Razorpay: $_currentRazorpayOrderId');
+        debugPrint('❌ Available keys in response: ${response.keys.toList()}');
+        debugPrint(
+          '❌ Available keys in paymentData: ${paymentData.keys.toList()}',
+        );
+        throw OrderServiceException(
+          'Missing order IDs in payment response',
+          statusCode: 400,
+        );
+      }
+
+      // Build Razorpay options and open payment gateway
+      final options = _buildRazorpayOptions(paymentData, orderRequest);
+      debugPrint('💳 Razorpay options built successfully');
+      debugPrint(
+        '💳 Key fields: key=${options['key']}, amount=${options['amount']}, order_id=${options['order_id']}',
+      );
+
+      // Stop loading before opening Razorpay
+      isLoading.value = false;
+      debugPrint('💳 Opening Razorpay payment gateway...');
+
+      // Open Razorpay payment gateway
+      _isPaymentProcessActive = true;
+      if (_currentBackendOrderId != null) {
+        _box.write(_ongoingOrderKey, _currentBackendOrderId);
+      }
+      _razorpay.open(options);
+    } catch (e, stackTrace) {
+      debugPrint('❌ === ERROR IN ONLINE ORDER PROCESSING ===');
+      debugPrint('❌ Error: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+
+      isLoading.value = false;
+      _resetOrderState();
+
+      String errorMessage =
+          'Failed to initiate online payment. Please try again.';
+      if (e is OrderServiceException) {
+        errorMessage = e.message;
+      } else if (e.toString().contains('network') ||
+          e.toString().contains('connection')) {
+        errorMessage =
+            'Network error. Please check your connection and try again.';
+      }
+
+      _showModernSnackbar(
+        'Payment Error',
+        errorMessage,
+        isError: true,
+        icon: Icons.error_outline,
+        backgroundColor: Colors.red.shade600,
+      );
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // **FIXED METHOD**
+  Map<String, dynamic>? _validateOnlinePaymentResponse(
+    Map<String, dynamic> response,
+  ) {
+    debugPrint('🔍 === VALIDATING PAYMENT RESPONSE ===');
+    debugPrint('🔍 Response keys: ${response.keys.toList()}');
+    debugPrint('🔍 Full response: $response');
+
+    // Check if we have the essential Razorpay fields directly
+    final List<String> requiredFields = [
+      'razorpayOrderId',
+      'amount',
+      'currency',
+      'key',
+    ];
+    Map<String, dynamic> validatedData = {};
+
+    // Extract required fields directly from response
+    for (String field in requiredFields) {
+      if (response.containsKey(field) && response[field] != null) {
+        validatedData[field] = response[field];
+        debugPrint('✅ Found required field "$field": ${response[field]}');
+      } else {
+        debugPrint('🛑 Missing required field: $field in payment response');
+        debugPrint('🛑 Available fields: ${response.keys.join(', ')}');
+        _showModernSnackbar(
+          'Payment Error',
+          'Invalid payment response. Missing $field.',
+          isError: true,
+          icon: Icons.error_outline,
+        );
+        return null;
+      }
+    }
+
+    // Extract order ID - your logs show 'newOrderId' exists
+    String? orderId =
+        response['newOrderId'] ??
+        response['orderId'] ??
+        response['_id'] ??
+        response['id'];
+
+    if (orderId != null && orderId.isNotEmpty) {
+      validatedData['orderId'] = orderId;
+      validatedData['newOrderId'] = orderId;
+      debugPrint('✅ Found order ID: $orderId');
+    } else {
+      debugPrint('🛑 No order ID found in payment response');
+      debugPrint('🛑 Checked fields: newOrderId, orderId, _id, id');
+      debugPrint('🛑 Available fields: ${response.keys.join(', ')}');
+      _showModernSnackbar(
+        'Payment Error',
+        'Order ID missing in payment response.',
+        isError: true,
+        icon: Icons.error_outline,
+      );
+      return null;
+    }
+
+    // Add user data if present
+    if (response.containsKey('user')) {
+      validatedData['user'] = response['user'];
+      debugPrint('✅ Added user data to validated response');
+    }
+
+    // Add any additional data that might be useful
+    for (String key in ['status', 'message', 'success']) {
+      if (response.containsKey(key)) {
+        validatedData[key] = response[key];
+      }
+    }
+
+    debugPrint('✅ Payment response validated successfully');
+    debugPrint('✅ Validated data keys: ${validatedData.keys.join(', ')}');
+    debugPrint('✅ Order ID: $orderId');
+    return validatedData;
+  }
+
+  // FIXED: Build Razorpay options with enhanced validation
+  Map<String, dynamic> _buildRazorpayOptions(
+    Map<String, dynamic> paymentData,
+    CreateOrderRequestModel orderRequest,
+  ) {
+    debugPrint('🔧 === BUILDING RAZORPAY OPTIONS ===');
+    debugPrint('🔧 Payment data keys: ${paymentData.keys.toList()}');
+    debugPrint('🔧 Payment data: $paymentData');
+
+    // Handle amount conversion properly
+    final dynamic amountValue = paymentData['amount'];
+    int amount;
+
+    if (amountValue is int) {
+      amount = amountValue;
+    } else if (amountValue is double) {
+      amount = amountValue.toInt();
+    } else if (amountValue is String) {
+      amount = int.tryParse(amountValue) ?? 0;
+    } else {
+      debugPrint(
+        '❌ Invalid amount type: ${amountValue.runtimeType}, value: $amountValue',
+      );
+      throw OrderServiceException(
+        'Invalid amount in payment response: $amountValue',
+      );
+    }
+
+    debugPrint('💰 Razorpay amount: $amount paise (${amount / 100} rupees)');
+
+    final options = {
+      'key': paymentData['key']?.toString() ?? '2tjsbbZMJeHVys4lyiTSurM0',
+      'amount': amount,
+      'name': 'MobiKing Wholesale',
+      'description': 'Order Payment - MobiKing',
+      'order_id': paymentData['razorpayOrderId']?.toString() ?? '',
+      'currency': paymentData['currency']?.toString() ?? 'INR',
+      'prefill': {
+        'email': orderRequest.email,
+        'contact': orderRequest.phoneNo,
+        'name': orderRequest.name,
+      },
+      'external': {
+        'wallets': ['paytm', 'googlepay', 'phonepe'],
+      },
+      'theme': {'color': '#6C63FF'},
+      'modal': {'backdropclose': false, 'escape': false, 'handleback': false},
+      'retry': {'enabled': true, 'max_count': 3},
+      'timeout': 300,
+    };
+
+    // Validation: Check all critical fields
+    final Map<String, dynamic> criticalFields = {
+      'key': options['key'],
+      'amount': options['amount'],
+      'order_id': options['order_id'],
+      'currency': options['currency'],
+    };
+
+    for (String field in criticalFields.keys) {
+      final value = criticalFields[field];
+      if (value == null ||
+          value.toString().isEmpty ||
+          (field == 'amount' && value == 0)) {
+        debugPrint('❌ Critical field "$field" is invalid: $value');
+        throw OrderServiceException(
+          'Invalid payment configuration: $field missing, empty, or zero',
+        );
+      }
+    }
+
+    debugPrint('✅ Razorpay options built and validated successfully');
+    debugPrint('🔑 Key: ${options['key']}');
+    debugPrint('💰 Amount: ${options['amount']} paise');
+    debugPrint('🆔 Order ID: ${options['order_id']}');
+    debugPrint('💱 Currency: ${options['currency']}');
+
+    return options;
+  }
+
+  String? _extractOrderId(dynamic orderObject) {
+    if (orderObject == null) {
+      debugPrint('❌ Order object is null');
+      return null;
+    }
+
+    debugPrint(
+      '🔍 Extracting order ID from object type: ${orderObject.runtimeType}',
+    );
+
+    try {
+      // Method 1: Handle OrderModel object first (most likely case)
+      if (orderObject.runtimeType.toString().contains('OrderModel')) {
+        try {
+          // Try direct property access first
+          if (orderObject.id != null && orderObject.id.toString().isNotEmpty) {
+            debugPrint('✅ Found orderId via OrderModel.id: ${orderObject.id}');
+            return orderObject.id.toString();
+          }
+
+          // Try orderId property
+          if (orderObject.orderId != null &&
+              orderObject.orderId.toString().isNotEmpty) {
+            debugPrint(
+              '✅ Found orderId via OrderModel.orderId: ${orderObject.orderId}',
+            );
+            return orderObject.orderId.toString();
+          }
+
+          // Try converting to JSON
+          final jsonData = orderObject.toJson();
+          final orderId =
+              jsonData['_id'] ?? jsonData['id'] ?? jsonData['orderId'];
+          if (orderId != null && orderId.toString().isNotEmpty) {
+            debugPrint('✅ Found orderId via OrderModel JSON: $orderId');
+            return orderId.toString();
+          }
+        } catch (e) {
+          debugPrint('⚠️ OrderModel direct access failed: $e');
+        }
+      }
+
+      // Method 2: Handle Map directly
+      if (orderObject is Map) {
+        final orderId =
+            orderObject['_id'] ?? orderObject['orderId'] ?? orderObject['id'];
+        if (orderId != null && orderId.toString().isNotEmpty) {
+          debugPrint('✅ Found orderId via map access: $orderId');
+          return orderId.toString();
+        }
+      }
+
+      // Method 3: Try dynamic property access (fallback)
+      try {
+        final dynamic orderIdValue =
+            orderObject.id ?? orderObject.orderId ?? orderObject._id;
+        if (orderIdValue != null && orderIdValue.toString().isNotEmpty) {
+          debugPrint('✅ Found orderId via dynamic access: $orderIdValue');
+          return orderIdValue.toString();
+        }
+      } catch (e) {
+        debugPrint('⚠️ Dynamic access failed: $e');
+      }
+    } catch (e) {
+      debugPrint('❌ Error extracting order ID: $e');
+    }
+
+    debugPrint('❌ Could not extract order ID from ${orderObject.runtimeType}');
+
+    // Additional debugging - let's see what properties are available
+    try {
+      if (orderObject.runtimeType.toString().contains('OrderModel')) {
+        debugPrint('🔍 OrderModel debug info:');
+        final jsonData = orderObject.toJson();
+        debugPrint(
+          '🔍 Available keys in OrderModel JSON: ${jsonData.keys.toList()}',
+        );
+        debugPrint('🔍 Full OrderModel JSON: $jsonData');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not debug OrderModel: $e');
+    }
+
+    return null;
+  }
+
+  // FIXED: Complete order success operations with enhanced null safety
+  Future _completeOrderSuccess(
+    Map<String, dynamic> orderData,
+    String paymentMethod,
+  ) async {
+    try {
+      debugPrint('🔧 === STARTING ORDER DATA STORAGE ===');
+      debugPrint('🔧 Payment Method: $paymentMethod');
+      debugPrint('🔧 Order Data Keys: ${orderData.keys.toList()}');
+
+      // Extract order ID from the complete order data
+      String? orderId =
+          (orderData['orderId'] ??
+                  orderData['_id'] ??
+                  orderData['id'] ??
+                  orderData['newOrderId'])
+              ?.toString();
+
+      if (orderId == null || orderId.isEmpty) {
+        debugPrint('❌ CRITICAL ERROR: Cannot extract order ID from order data');
+        debugPrint('❌ Order data: $orderData');
+        throw Exception('Order ID is null or empty - cannot complete order');
+      }
+
+      debugPrint('✅ Extracted Order ID: $orderId');
+
+      // COMPREHENSIVE: Store order data in multiple keys and formats for maximum reliability
+      await _box.write('last_placed_order', orderData);
+      await _box.write('current_order_for_confirmation', orderData);
+      await _box.write('recent_order_id', orderId);
+      await _box.write('last_order_id', orderId);
+      await _box.write('latest_order_id', orderId);
+      await _box.write(
+        'lastOrderId',
+        orderId,
+      ); // Original key for backward compatibility
+
+      // Store comprehensive order confirmation data with timestamp
+      await _box.write('order_confirmation_data', {
+        'orderId': orderId,
+        'orderData': orderData,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'method': paymentMethod,
+        'status': 'success',
+      });
+
+      // Additional storage for fallback
+      await _box.write('order_success_data', {
+        'id': orderId,
+        'data': orderData,
+        'createdAt': DateTime.now().toIso8601String(),
+        'paymentMethod': paymentMethod,
+      });
+
+      debugPrint('✅ Order data stored in ALL possible keys');
+      debugPrint('✅ Order ID for confirmation: $orderId');
+
+      // Save the address as the default address
+      /*
+      if (orderData.containsKey('address') && orderData['address'] != null) {
+        await _box.write('default_address', orderData['address']);
+        debugPrint('✅ Saved default address');
+      }
+      */
+
+      // Clear cart data
+      await _cartController.clearCartData();
+
+      // Refresh order history
+      fetchOrderHistory();
+
+      // Reset Order state (GST, Coupon, etc.)
+      resetGST();
+      _couponController.reset();
+
+      debugPrint(
+        '✅ Order saved locally, cart cleared, coupon reset and order history refreshed',
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ CRITICAL ERROR in _completeOrderSuccess: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // Improved snackbar methods
+  void _showSuccessSnackbar(
+    String title,
+    String message,
+    IconData icon, {
+    Color? backgroundColor,
+    Duration? duration,
+  }) {
+    _showModernSnackbar(
+      title,
+      message,
+      isError: false,
+      icon: icon,
+      backgroundColor: backgroundColor ?? Colors.green.shade400,
+      snackPosition: SnackPosition.TOP,
+      duration: duration,
+    );
+  }
+
+  void _showInfoSnackbar(
+    String title,
+    String message,
+    IconData icon, {
+    Duration? duration,
+  }) {
+    _showModernSnackbar(
+      title,
+      message,
+      isError: false,
+      icon: icon,
+      backgroundColor: AppColors.textLight.withOpacity(0.8),
+      snackPosition: SnackPosition.TOP,
+      duration: duration,
+    );
+  }
+
+  // Rest of the existing methods remain unchanged...
+  Future fetchOrderHistory({bool isPoll = false}) async {
+    if (!isPoll) {
+      isLoadingOrderHistory.value = true;
+    }
+
+    orderHistoryErrorMessage.value = '';
+
+    try {
+      final List fetchedOrders = await _orderService.getUserOrders();
+
+      if (fetchedOrders.isNotEmpty) {
+        fetchedOrders.sort(
+          (a, b) => b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0,
+        );
+        orderHistory.assignAll(fetchedOrders.cast<OrderModel>());
+        if (!isPoll) {
+          debugPrint(
+            'OrderController: Fetched ${orderHistory.length} orders successfully.',
+          );
+        }
+      } else {
+        orderHistory.clear();
+      }
+    } on OrderServiceException catch (e, stackTrace) {
+      orderHistory.clear();
+      orderHistoryErrorMessage.value = e.message;
+      if (!isPoll) {
+        debugPrint(
+          'OrderController: Order History Service Error: Status ${e.statusCode} - Message: ${e.message}',
+        );
+        debugPrint('Stack Trace: $stackTrace');
+      }
+    } catch (e, stackTrace) {
+      orderHistory.clear();
+      orderHistoryErrorMessage.value =
+          'An unexpected error occurred. Please try again later.';
+      if (!isPoll) {
+        debugPrint(
+          'OrderController: Unexpected Exception in fetchOrderHistory: $e',
+        );
+        debugPrint('Stack Trace: $stackTrace');
+      }
+    } finally {
+      if (!isPoll) {
+        isLoadingOrderHistory.value = false;
+      }
+    }
+  }
+
+  OrderModel? getOrderById(String orderId) {
+    return orderHistory.firstWhereOrNull((order) => order.id == orderId);
+  }
+
+  Future<OrderModel?> OrderById(String orderId) async {
+    OrderModel? order = orderHistory.firstWhereOrNull((o) => o.id == orderId);
+
+    if (order != null) {
+      print('OrderController: Order found in local cache: $orderId');
+      return order;
+    }
+
+    isLoading.value = true;
+    try {
+      print('OrderController: Fetching order $orderId from backend...');
+      order = await _orderService.getOrderDetails(orderId: orderId);
+
+      if (order != null) {
+        final int index = orderHistory.indexWhere((o) => o.id == order!.id);
+        if (index != -1) {
+          orderHistory[index] = order;
+        } else {
+          orderHistory.add(order);
+        }
+
+        orderHistory.sort(
+          (a, b) => b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0,
+        );
+        print(
+          'OrderController: Order $orderId fetched from backend and updated/added to local cache.',
+        );
+      } else {
+        print('OrderController: Order $orderId not found on backend.');
+      }
+
+      return order;
+    } on OrderServiceException catch (e) {
+      print(
+        'OrderController: Error fetching order $orderId from backend: ${e.message}',
+      );
+      return null;
+    } catch (e) {
+      print('OrderController: Unexpected error getting order $orderId: $e');
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> sendOrderRequest(String orderId, String requestType) async {
+    final RxString localSelectedReason = ''.obs;
+    final TextEditingController reasonController = TextEditingController();
+
+    final List<String> reasons = requestType == 'Cancel'
+        ? Reasons.cancelReasons
+        : Reasons.returnReasons;
+
+    final String displayAction = requestType == 'Cancel' ? 'cancellation' : 'return';
+
+    final bool? dialogResult = await Get.dialog(
+      GestureDetector(
+        onTap: () => FocusScope.of(Get.context!).unfocus(),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: AppColors.white,
+          titlePadding: const EdgeInsets.fromLTRB(24, 20, 10, 0),
+          contentPadding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '${requestType.capitalizeFirst} Request',
+                  style: Get.textTheme.titleMedium?.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Get.back(result: false),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(Icons.close, color: AppColors.textMedium, size: 24),
+                ),
+              ),
+            ],
+          ),
+          content: Obx(
+            () => SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Text(
+                      'Select a reason for your $displayAction request:',
+                      style: Get.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMedium,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...reasons.map((reasonOption) {
+                    return RadioListTile<String>(
+                      title: Text(
+                        reasonOption,
+                        style: Get.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      value: reasonOption,
+                      groupValue: localSelectedReason.value,
+                      onChanged: (String? value) {
+                        localSelectedReason.value = value!;
+                      },
+                      activeColor: AppColors.primaryPurple,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10.0,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    );
+                  }).toList(),
+                  if (localSelectedReason.value == 'Other')
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                      child: TextField(
+                        controller: reasonController,
+                        maxLines: 3,
+                        minLines: 2,
+                        keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: Get.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textDark,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Please specify your reason here...',
+                          hintStyle: Get.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textLight,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: AppColors.neutralBackground,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: AppColors.primaryPurple,
+                              width: 2,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: AppColors.white,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.neutralBackground,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            Center(
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    String currentReason = localSelectedReason.value;
+                    if (currentReason.isEmpty) {
+                      _showModernSnackbar(
+                        'Reason Required',
+                        'Please select a reason for your request.',
+                        isError: true,
+                        backgroundColor: Colors.red.shade600,
+                      );
+                    } else if (currentReason == 'Other' &&
+                        (reasonController.text.trim().isEmpty ||
+                            reasonController.text.trim().length < 5)) {
+                      _showModernSnackbar(
+                        'More Detail Required',
+                        'Please provide at least a short explanation.',
+                        isError: true,
+                        backgroundColor: Colors.red.shade600,
+                      );
+                    } else {
+                      Get.back(result: true);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPurple,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: Text(
+                    'Place Request',
+                    style: Get.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    if (dialogResult == null || !dialogResult) {
+      debugPrint('$requestType request cancelled by user.');
+      reasonController.dispose();
+      return;
+    }
+
+    String finalReasonToSend;
+    if (localSelectedReason.value == 'Other') {
+      finalReasonToSend = reasonController.text.trim();
+    } else {
+      finalReasonToSend = localSelectedReason.value;
+    }
+
+    // Dispose after fetching values
+    reasonController.dispose();
+
+    isLoading.value = true;
+    try {
+      Map response;
+      String successMessage;
+
+      switch (requestType) {
+        case 'Cancel':
+          response = await _orderService.requestCancel(
+            orderId,
+            finalReasonToSend,
+          );
+          successMessage = 'Cancel request sent successfully!';
+          break;
+        case 'Return':
+          response = await _orderService.requestReturn(
+            orderId,
+            finalReasonToSend,
+          );
+          successMessage = 'Return request sent successfully!';
+          break;
+        default:
+          throw Exception('Invalid request type: $requestType');
+      }
+
+      _showModernSnackbar(
+        'Success',
+        successMessage,
+        isError: false,
+        icon: Icons.check_circle_outline,
+        backgroundColor: Colors.green,
+      );
+      await fetchOrderHistory();
+    } on OrderServiceException catch (e) {
+      _showModernSnackbar(
+        'Request Error',
+        e.message,
+        isError: true,
+        icon: Icons.error_outline,
+        backgroundColor: Colors.red.shade600,
+      );
+    } catch (e) {
+      _showModernSnackbar(
+        'Unexpected Error',
+        'Something went wrong. Please try again later.',
+        isError: true,
+        icon: Icons.warning_amber_rounded,
+        backgroundColor: Colors.orange.shade700,
+      );
+      print('Unexpected error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  bool _isSpecificRequestActive(OrderModel order, String type) {
+    if (order.requests == null || order.requests!.isEmpty) return false;
+    return order.requests!.any((r) {
+      final requestType = r.type.toLowerCase();
+      final status = r.status.toLowerCase();
+      return requestType == type.toLowerCase() &&
+          status != 'rejected' &&
+          status != 'resolved' &&
+          status != 'completed';
+    });
+  }
+
+  bool showCancelButton(OrderModel order) {
+    final bool isOrderCancellable = [
+      'new',
+      'accepted',
+    ].contains(order.status.toLowerCase());
+    final bool hasActiveCancelRequest = _isSpecificRequestActive(
+      order,
+      'Cancel',
+    );
+    return isOrderCancellable && !hasActiveCancelRequest;
+  }
+
+  bool showReturnButton(OrderModel order) {
+    final bool isOrderDelivered = order.status.toLowerCase() == 'delivered';
+    final bool withinReturnPeriod =
+        isOrderDelivered &&
+        order.deliveredAt != null &&
+        DateTime.now()
+                .difference(
+                  DateTime.tryParse(order.deliveredAt!) ?? DateTime(0),
+                )
+                .inDays <=
+            3;
+    final bool hasActiveReturnRequest = _isSpecificRequestActive(
+      order,
+      'Return',
+    );
+    return withinReturnPeriod && !hasActiveReturnRequest;
+  }
+
+  bool showReviewButton(OrderModel order) {
+    final bool isOrderDelivered = order.status.toLowerCase() == 'delivered';
+    return isOrderDelivered && !order.isReviewed;
+  }
+
+  Future<void> submitReview(
+    String orderId,
+    double rating,
+    String review,
+  ) async {
+    isLoading.value = true;
+    try {
+      await _orderService.submitReview(orderId, rating, review);
+      await fetchOrderHistory();
+      Get.back();
+      _showModernSnackbar(
+        'Review Submitted',
+        'Thank you for your feedback!',
+        isError: false,
+        icon: Icons.check_circle_outline,
+        backgroundColor: Colors.green.shade600,
+      );
+    } on OrderServiceException catch (e) {
+      _showModernSnackbar(
+        'Error',
+        e.message,
+        isError: true,
+        icon: Icons.error_outline,
+        backgroundColor: Colors.red.shade600,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}
+
+class OrderServiceException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  OrderServiceException(this.message, {this.statusCode});
+
+  @override
+  String toString() => 'OrderServiceException: $message (Status: $statusCode)';
+}
