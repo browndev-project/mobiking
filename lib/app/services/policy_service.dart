@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:mobiking/app/data/CompanyDetail_model.dart';
-import 'package:mobiking/app/data/Policy_model.dart';
+import 'package:mobiking/app/data/company_detail_model.dart';
+import 'package:mobiking/app/data/policy_model.dart';
 
 class PolicyService {
   static const String _baseUrl = 'https://boxbudy.com/api/v1/';

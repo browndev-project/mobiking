@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobiking/app/controllers/user_controller.dart';
-import 'package:mobiking/app/data/Policy_model.dart';
-import 'package:mobiking/app/modules/address/AddressPage.dart';
+import 'package:mobiking/app/data/policy_model.dart';
+import 'package:mobiking/app/modules/address/address_page.dart';
 import 'package:mobiking/app/modules/about/about_screen.dart';
 import 'package:mobiking/app/modules/policy/policy_detail_screen.dart';
-import 'package:mobiking/app/modules/profile/wishlist/Wish_list_screen.dart';
+import 'package:mobiking/app/modules/profile/wishlist/wish_list_screen.dart';
 import 'package:mobiking/app/services/policy_service.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:share_plus/share_plus.dart';
@@ -348,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ✅ User Settings Bottom Sheet
-  void _showUserBottomSheet(BuildContext context) {
+  void showUserBottomSheet(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     showModalBottomSheet(
@@ -371,7 +371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textLight.withOpacity(0.3),
+                  color: AppColors.textLight.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -420,7 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ✅ WhatsApp Launch Function
-  void _launchWhatsApp() async {
+  void launchWhatsApp() async {
     const phoneNumber = "+1234567890"; // Replace with your WhatsApp number
     const message = "Hello! I need help with Mobiking app.";
 

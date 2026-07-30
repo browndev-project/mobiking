@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
@@ -9,7 +10,7 @@ void main() {
   for (String path in filesToCrop) {
     final file = File(path);
     if (!file.existsSync()) {
-      print('File not found: $path');
+      debugPrint('File not found: $path');
       continue;
     }
 
@@ -48,9 +49,9 @@ void main() {
       img.compositeImage(square, cropped, dstX: offsetX, dstY: offsetY);
       
       file.writeAsBytesSync(img.encodePng(square));
-      print('Cropped successfully: $path (New size: ${square.width}x${square.height}) from ${defaultImage.width}x${defaultImage.height}');
+      debugPrint('Cropped successfully: $path (New size: ${square.width}x${square.height}) from ${defaultImage.width}x${defaultImage.height}');
     } else {
-      print('Image is completely transparent or invalid.');
+      debugPrint('Image is completely transparent or invalid.');
     }
   }
 }

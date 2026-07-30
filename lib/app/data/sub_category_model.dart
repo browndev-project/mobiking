@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:mobiking/app/data/product_model.dart';
-import 'ParentCategory.dart';
+import 'parent_category.dart';
 
 part 'sub_category_model.g.dart'; // This will be generated
 
@@ -85,8 +85,9 @@ class SubCategory extends HiveObject {
   static int? _safeParseInt(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;
-    if (value is double)
+    if (value is double) {
       return value.toInt(); // Convert double to int (truncates)
+    }
     if (value is String) {
       return int.tryParse(value);
     }

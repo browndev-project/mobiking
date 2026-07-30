@@ -1,7 +1,8 @@
 
+import 'package:flutter/material.dart';
 import 'package:mobiking/app/data/scan_model.dart';
 
-import 'QueryModel.dart';
+import 'query_model.dart';
 
 // ===================================================================
 // QUERY MODEL (Included from previous context for completeness)
@@ -461,7 +462,7 @@ class OrderModel {
   }) : requests = requests ?? [];
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
-    print('Parsing OrderModel. Query field: ${json['query']}');
+    debugPrint('Parsing OrderModel. Query field: ${json['query']}');
 
     // Logic to extract coupon info
     final dynamic couponData = json['coupon'];

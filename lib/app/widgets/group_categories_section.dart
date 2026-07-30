@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobiking/app/controllers/sub_category_controller.dart';
 import 'package:mobiking/app/data/parent_category_model.dart';
-import 'package:mobiking/app/modules/Categories/widgets/CategoryProductsGridScreen.dart';
-import 'package:mobiking/app/modules/Categories/widgets/CategoryTile.dart';
+import 'package:mobiking/app/modules/Categories/widgets/category_products_grid_screen.dart';
+import 'package:mobiking/app/modules/Categories/widgets/category_tile.dart';
 
 class GroupCategoriesSection extends StatelessWidget {
   final List<ParentCategoryModel> categories;

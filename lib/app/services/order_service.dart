@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 // Import your data models
-import '../data/Order_get_data.dart';
+import '../data/order_get_data.dart';
 import '../data/order_model.dart';
 import '../data/razor_pay.dart';
 
@@ -32,8 +32,8 @@ class OrderService extends GetxService {
   OrderService({http.Client? client}) : _client = client ?? http.Client();
 
   // ENHANCED: Timeout configurations
-  static const Duration _connectTimeout = Duration(seconds: 30);
-  static const Duration _receiveTimeout = Duration(seconds: 30);
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
   static const int _maxRetries = 3;
 
   // Define a key for storing the last order ID
@@ -49,7 +49,7 @@ class OrderService extends GetxService {
   String? get _accessToken => _testToken ?? _box.read('accessToken');
 
   void _log(String message) {
-    print('[OrderService] $message');
+    debugPrint('[OrderService] $message');
   }
 
   Map<String, String> _getHeaders({bool requireAuth = true}) {

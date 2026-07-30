@@ -12,11 +12,11 @@ class AllProductsListView extends StatelessWidget {
   final Function(ProductModel)? onProductTap;
 
   const AllProductsListView({
-    Key? key,
+    super.key,
     required this.subCategories,
     required this.subCategoryIndex,
     this.onProductTap,
-  }) : super(key: key);
+  });
 
   static const double _gridHorizontalPadding = 8.0;
   static const double _gridItemSpacing = 0;

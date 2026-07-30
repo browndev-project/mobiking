@@ -3,12 +3,12 @@ import 'package:get/get.dart';
 import 'dart:async';
 import 'package:fluttertoast/fluttertoast.dart';
 
-import '../data/AddressModel.dart';
-import '../services/AddressService.dart';
+import '../data/address_model.dart';
+import '../services/address_service.dart';
 
 import 'package:mobiking/app/controllers/connectivity_controller.dart';
 
-import '../services/PincodeService.dart';
+import '../services/pincode_service.dart';
 
 class AddressController extends GetxController {
   final AddressService _addressService = Get.find<AddressService>();
@@ -86,7 +86,7 @@ class AddressController extends GetxController {
 
   // ✅ Detect location from PIN code
   Future<void> detectLocationFromPincode(String pincode) async {
-    print('AddressController: Detecting location for PIN code: $pincode');
+    debugPrint('AddressController: Detecting location for PIN code: $pincode');
 
     isDetectingLocation.value = true;
     detectionError.value = '';
@@ -106,7 +106,7 @@ class AddressController extends GetxController {
         if (shouldFillCity) cityController.text = locationData['city']!;
         if (shouldFillState) stateController.text = locationData['state']!;
 
-        print(
+        debugPrint(
           'AddressController: Location detected - City: ${locationData['city']}, State: ${locationData['state']}',
         );
 
@@ -118,7 +118,7 @@ class AddressController extends GetxController {
         }
       } else {
         detectionError.value = 'Could not detect location for this PIN code';
-        print(
+        debugPrint(
           'AddressController: Could not detect location for PIN code: $pincode',
         );
 
@@ -129,7 +129,7 @@ class AddressController extends GetxController {
       }
     } catch (e) {
       detectionError.value = 'Network error while detecting location';
-      print(
+      debugPrint(
         'AddressController: Error detecting location for PIN code $pincode: $e',
       );
     } finally {
@@ -138,7 +138,7 @@ class AddressController extends GetxController {
   }
 
   Future<void> _handleConnectionRestored() async {
-    print(
+    debugPrint(
       'AddressController: Internet connection restored. Re-fetching addresses...',
     );
     await fetchAddresses();
@@ -172,10 +172,10 @@ class AddressController extends GetxController {
         selectedAddress.value = null;
       }
     } on AddressServiceException catch (e) {
-      print('AddressController: Error fetching addresses: $e');
+      debugPrint('AddressController: Error fetching addresses: $e');
       addressErrorMessage.value = e.message;
     } catch (e) {
-      print('AddressController: Unexpected error fetching addresses: $e');
+      debugPrint('AddressController: Unexpected error fetching addresses: $e');
       addressErrorMessage.value =
           'An unexpected error occurred while fetching addresses.';
     } finally {
@@ -310,12 +310,12 @@ class AddressController extends GetxController {
         return false;
       }
     } on AddressServiceException catch (e) {
-      print('AddressController: Error saving address: $e');
+      debugPrint('AddressController: Error saving address: $e');
       addressErrorMessage.value = e.message;
       _showToast(e.message, backgroundColor: Colors.red);
       return false;
     } catch (e) {
-      print('AddressController: Unexpected error saving address: $e');
+      debugPrint('AddressController: Unexpected error saving address: $e');
       addressErrorMessage.value =
           'An unexpected error occurred. Please try again later.';
       _showToast(addressErrorMessage.value, backgroundColor: Colors.red);
@@ -344,12 +344,12 @@ class AddressController extends GetxController {
       }
       return false;
     } on AddressServiceException catch (e) {
-      print('AddressController: Error deleting address: $e');
+      debugPrint('AddressController: Error deleting address: $e');
       addressErrorMessage.value = e.message;
       _showToast(e.message, backgroundColor: Colors.red);
       return false;
     } catch (e) {
-      print('AddressController: Unexpected error deleting address: $e');
+      debugPrint('AddressController: Unexpected error deleting address: $e');
       addressErrorMessage.value =
           'An unexpected error occurred while deleting address.';
       _showToast(addressErrorMessage.value, backgroundColor: Colors.red);

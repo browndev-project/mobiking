@@ -1,5 +1,5 @@
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../data/category_model.dart';
 import '../services/category_service.dart';
 
@@ -28,16 +28,16 @@ class CategoryController extends GetxController {
         isInitialLoad.value = true;
       }
 
-      print('[CategoryController] Fetching categories...');
+      debugPrint('[CategoryController] Fetching categories...');
       final result = await _service.getCategories(forceRefresh: forceRefresh);
       categories.assignAll(result);
 
-      print('[CategoryController] Fetched categories count: ${result.length}');
+      debugPrint('[CategoryController] Fetched categories count: ${result.length}');
 
       // Show success message only for forced refresh
       if (forceRefresh && result.isNotEmpty) {}
     } catch (e) {
-      print('[CategoryController] Error in fetchCategories: $e');
+      debugPrint('[CategoryController] Error in fetchCategories: $e');
     } finally {
       isLoading.value = false;
       isInitialLoad.value = false;
@@ -51,7 +51,7 @@ class CategoryController extends GetxController {
   }) async {
     try {
       isLoading.value = true;
-      print('[CategoryController] Fetching category details for slug: $slug');
+      debugPrint('[CategoryController] Fetching category details for slug: $slug');
 
       final response = await _service.getCategoryDetails(
         slug,
@@ -59,11 +59,11 @@ class CategoryController extends GetxController {
       );
       selectedCategory.value = response['category'] as CategoryModel?;
 
-      print(
+      debugPrint(
         '[CategoryController] Category details fetched for: ${selectedCategory.value?.name}',
       );
     } catch (e) {
-      print('[CategoryController] Error in fetchCategoryDetails: $e');
+      debugPrint('[CategoryController] Error in fetchCategoryDetails: $e');
       // Get.snackbar('Error', 'Failed to load category details: $e');
     } finally {
       isLoading.value = false;
@@ -80,7 +80,7 @@ class CategoryController extends GetxController {
     try {
       await _service.clearAllCache();
     } catch (e) {
-      print('[CategoryController] Error clearing cache: $e');
+      debugPrint('[CategoryController] Error clearing cache: $e');
     }
   }
 
@@ -95,7 +95,7 @@ class CategoryController extends GetxController {
         'isCategoriesCacheValid': cacheInfo['isCategoriesCacheValid'] ?? false,
       };
     } catch (e) {
-      print('[CategoryController] Error getting cache info: $e');
+      debugPrint('[CategoryController] Error getting cache info: $e');
       return {
         'cachedCategoriesCount': 0,
         'cachedDetailsCount': 0,

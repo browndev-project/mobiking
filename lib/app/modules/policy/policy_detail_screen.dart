@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:mobiking/app/data/Policy_model.dart';
+import 'package:mobiking/app/data/policy_model.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:intl/intl.dart';
 

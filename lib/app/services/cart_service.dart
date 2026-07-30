@@ -10,7 +10,7 @@ class CartService {
   final box = GetStorage();
 
   void _log(String message) {
-    print('[CartService] $message');
+    debugPrint('[CartService] $message');
   }
 
   // Helper to get common headers with error handling

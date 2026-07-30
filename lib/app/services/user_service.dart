@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../data/login_model.dart';
 
 class UserService {
@@ -8,13 +9,13 @@ class UserService {
   UserService(this._dio); // Inject Dio instance
 
   void _log(String message) {
-    print('[UserService] $message');
+    debugPrint('[UserService] $message');
   }
 
   Future<UserModel> createUser(UserModel user) async {
     try {
       _log('Creating user: ${user.toJson()}');
-      final response = await _dio.post('$_baseUrl', data: user.toJson());
+      final response = await _dio.post(_baseUrl, data: user.toJson());
       _log(
         'Create user response: Status ${response.statusCode}, Data: ${response.data}',
       );
@@ -36,7 +37,7 @@ class UserService {
     try {
       _log('Fetching user by phone: $phoneNo');
       final response = await _dio.get(
-        '$_baseUrl',
+        _baseUrl,
         queryParameters: {'phoneNo': phoneNo},
       );
       _log(

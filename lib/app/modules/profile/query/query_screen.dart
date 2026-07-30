@@ -12,7 +12,7 @@ import '../../../themes/app_theme.dart'; // Import your AppColors and AppTheme
 import 'AboutUsDialog.dart'; // Assuming this exists
 import 'FaqDialog.dart';     // Assuming this exists
 
-import 'Raise_query.dart';
+import 'raise_query.dart';
 import 'query_detail_screen.dart'; // <--- Import the QueryDetailScreen
 
 class QueriesScreen extends StatefulWidget {
@@ -144,8 +144,8 @@ class _QueriesScreenState extends State<QueriesScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.primaryPurple.withOpacity(0.15),
-                      AppColors.primaryPurple.withOpacity(0.05),
+                      AppColors.primaryPurple.withValues(alpha: 0.15),
+                      AppColors.primaryPurple.withValues(alpha: 0.05),
                       AppColors.white,
                     ],
                     stops: const [0.0, 0.5, 1.0],
@@ -174,7 +174,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                           borderRadius: BorderRadius.circular(36),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primaryPurple.withOpacity(0.15),
+                              color: AppColors.primaryPurple.withValues(alpha: 0.15),
                               blurRadius: 25,
                               offset: const Offset(0, 12),
                             ),
@@ -188,7 +188,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                 decoration: InputDecoration(
                                   hintText: 'Ask a quick question...',
                                   hintStyle: textTheme.bodyLarge?.copyWith(
-                                    color: AppColors.textLight.withOpacity(0.8),
+                                    color: AppColors.textLight.withValues(alpha: 0.8),
                                   ),
                                   border: InputBorder.none,
                                   isDense: true,
@@ -206,7 +206,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                               ),
                             ),
                             const SizedBox(width: 15),
-                            Icon(Icons.mic, color: AppColors.textLight.withOpacity(0.7)),
+                            Icon(Icons.mic, color: AppColors.textLight.withValues(alpha: 0.7)),
                             const SizedBox(width: 12),
                             // ✅ Enhanced send button with loading state
                             Obx(() => GestureDetector(
@@ -220,7 +220,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                   borderRadius: BorderRadius.circular(30),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.accentNeon.withOpacity(0.4),
+                                      color: AppColors.accentNeon.withValues(alpha: 0.4),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -260,12 +260,12 @@ class _QueriesScreenState extends State<QueriesScreen> {
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.7),
+                          color: AppColors.white.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(25),
-                          border: Border.all(color: AppColors.primaryPurple.withOpacity(0.2), width: 1.0),
+                          border: Border.all(color: AppColors.primaryPurple.withValues(alpha: 0.2), width: 1.0),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
@@ -308,7 +308,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.neutralBackground,
                                 borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: AppColors.textLight.withOpacity(0.1), width: 0.5),
+                                border: Border.all(color: AppColors.textLight.withValues(alpha: 0.1), width: 0.5),
                               ),
                               child: Obx(() {
                                 if (queryController.isLoading && queryController.myQueries.isEmpty) {
@@ -336,13 +336,13 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.inbox_rounded, size: 70, color: AppColors.textLight.withOpacity(0.4)),
+                                          Icon(Icons.inbox_rounded, size: 70, color: AppColors.textLight.withValues(alpha: 0.4)),
                                           const SizedBox(height: 12),
                                           Text(
                                             'No queries raised yet.\nTap "Raise Query" to start one!',
                                             style: textTheme.bodyLarge?.copyWith(
                                               fontSize: 16,
-                                              color: AppColors.textMedium.withOpacity(0.7),
+                                              color: AppColors.textMedium.withValues(alpha: 0.7),
                                               height: 1.4,
                                             ),
                                             textAlign: TextAlign.center,
@@ -393,11 +393,11 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                             color: AppColors.white,
                                             borderRadius: BorderRadius.circular(12),
                                             border: hasUnreadAdminReply
-                                                ? Border.all(color: AppColors.accentNeon.withOpacity(0.3), width: 1)
+                                                ? Border.all(color: AppColors.accentNeon.withValues(alpha: 0.3), width: 1)
                                                 : null,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppColors.textDark.withOpacity(0.05),
+                                                color: AppColors.textDark.withValues(alpha: 0.05),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -421,7 +421,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                               // Icon
                                               CircleAvatar(
                                                 radius: 20,
-                                                backgroundColor: AppColors.primaryPurple.withOpacity(0.1),
+                                                backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.1),
                                                 child: Icon(
                                                   hasUnreadAdminReply
                                                       ? Icons.mark_unread_chat_alt
@@ -499,7 +499,7 @@ class _QueriesScreenState extends State<QueriesScreen> {
                                                       child: Container(
                                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                         decoration: BoxDecoration(
-                                                          color: queryController.getStatusColor(query.status.toString()).withOpacity(0.15),
+                                                          color: queryController.getStatusColor(query.status.toString()).withValues(alpha: 0.15),
                                                           borderRadius: BorderRadius.circular(18),
                                                         ),
                                                         child: Text(
@@ -561,12 +561,12 @@ class _QueriesScreenState extends State<QueriesScreen> {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textDark.withOpacity(0.08),
+              color: AppColors.textDark.withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
           ],
-          border: Border.all(color: AppColors.primaryPurple.withOpacity(0.1), width: 0.5),
+          border: Border.all(color: AppColors.primaryPurple.withValues(alpha: 0.1), width: 0.5),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -7,7 +7,7 @@ import '../../../controllers/order_controller.dart';
 class PaymentMethodSelectionScreen extends StatefulWidget {
   final String? initialMethod;
 
-  const PaymentMethodSelectionScreen({Key? key, this.initialMethod}) : super(key: key);
+  const PaymentMethodSelectionScreen({super.key, this.initialMethod});
 
   @override
   State<PaymentMethodSelectionScreen> createState() => _PaymentMethodSelectionScreenState();
@@ -87,7 +87,7 @@ class _PaymentMethodSelectionScreenState extends State<PaymentMethodSelectionScr
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.danger.withOpacity(0.1),
+                        backgroundColor: AppColors.danger.withValues(alpha: 0.1),
                         foregroundColor: AppColors.danger,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -125,7 +125,7 @@ class _PaymentMethodSelectionScreenState extends State<PaymentMethodSelectionScr
                         minimumSize: const Size.fromHeight(48),
                         elevation: 4,
                         disabledBackgroundColor: AppColors.lightPurple
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                       ),
                       child: Text(
                         'Select',
@@ -161,7 +161,7 @@ class _PaymentMethodSelectionScreenState extends State<PaymentMethodSelectionScr
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.lightPurple.withOpacity(0.2)
+                ? AppColors.lightPurple.withValues(alpha: 0.2)
                 : AppColors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -173,12 +173,12 @@ class _PaymentMethodSelectionScreenState extends State<PaymentMethodSelectionScr
             boxShadow: [
               if (isSelected)
                 BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.1),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               BoxShadow(
-                color: AppColors.textDark.withOpacity(0.03),
+                color: AppColors.textDark.withValues(alpha: 0.03),
                 blurRadius: 5,
                 offset: const Offset(0, 2),
               ),

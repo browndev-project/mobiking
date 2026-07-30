@@ -1,0 +1,50 @@
+Running `(cd /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/; ANDROID_HOME=/Users/zeelvasani/Library/Android/sdk TMPDIR=/var/folders/tn/93v_lb5j0h3_6vjg83vt04j00000gn/T/ PATH=/Users/zeelvasani/.gemini/antigravity/bin:/Users/zeelvasani/Library/Application Support/Antigravity/bin:/opt/homebrew/opt/openjdk@21/bin:/Users/zeelvasani/.nvm/versions/node/v20.20.2/bin:/opt/homebrew/Cellar/openjdk@17/17.0.16/libexec/openjdk.jdk/Contents/Home/bin:/opt/homebrew/opt/openjdk@17/bin:/opt/homebrew/lib/ruby/gems/3.4.0/bin:/opt/homebrew/Cellar/openjdk@17/17.0.16/libexec/openjdk.jdk/Contents/Home/bin:/opt/homebrew/opt/ruby/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/zeelvasani/Documents/flutter_sdk/flutter/bin:/Users/zeelvasani/.pub-cache/bin:/Users/zeelvasani/Library/Android/sdk/cmdline-tools/latest/bin:/Users/zeelvasani/Library/Android/sdk/platform-tools:/Users/zeelvasani/Library/Android/sdk/build-tools HOME=/Users/zeelvasani /Users/zeelvasani/Documents/flutter_sdk/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/zeelvasani/StudioProjects/mobiking/.dart_tool/package_config.json /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json )`.
+INFO: 2026-07-30 13:05:52.441810: Using compiler /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang from BuildInput.cCompiler.cc.
+
+INFO: 2026-07-30 13:05:52.448135: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/include/dart_api_dl.c -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-07-30 13:05:52.450253: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/objective_c.c -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
+
+INFO: 2026-07-30 13:05:52.450502: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/input_stream_adapter.m -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-07-30 13:05:52.450664: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/objective_c.m -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
+
+INFO: 2026-07-30 13:05:52.450954: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/ns_number.m -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.oININFO: 2026-07-30 13:05:52.451247: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/zeelvasani/.pub-cache/hosted/pub.dev/objective_c-9.5.0/src/objective_c_bindings_generated.m -fpic -gline-tables-only -I src -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-07-30 13:05:52.818255: 
+INFO: 2026-07-30 13:05:52.818477: 
+
+jects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
+
+INFO: 2026-07-30 13:05:52.819038: 
+INFO: 2026-07-30 13:05:52.819076: 
+INFO: 2026-07-30 13:05:52.819095: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o
+
+INFO: 2026-07-30 13:05:52.819247: 
+INFO: 2026-07-30 13:05:52.819282: 
+INFO: 2026-07-30 13:05:52.819301: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
+
+INFO: 2026-07-30 13:05:52.819536: 
+INFO: 2026-07-30 13:05:52.819576: 
+INFO: 2026-07-30 13:05:52.819596: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-07-30 13:05:53.199972: 
+INFO: 2026-07-30 13:05:53.200031: 
+INFO: 2026-07-30 13:05:53.200050: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
+
+INFO: 2026-07-30 13:05:53.217675: 
+INFO: 2026-07-30 13:05:53.217695: 
+INFO: 2026-07-30 13:05:53.217710: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
+
+ter.m.o
+
+INFO: 2026-07-30 13:05:53.266491: 
+INFO: 2026-07-30 13:05:53.266536: 
+INFO: 2026-07-30 13:05:53.266552: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-07-30 13:05:53.266944: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -target arm64-apple-darwin -mmacos-version-min=13 /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o -o /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+
+INFO: 2026-07-30 13:05:53.457636: 
+INFO: 2026-07-30 13:05:53.457725: 
+INFO: 2026-07-30 13:05:53.457746: Generated /Users/zeelvasani/StudioProjects/mobiking/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+

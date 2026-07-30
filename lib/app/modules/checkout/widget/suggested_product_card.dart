@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mobiking/app/themes/app_theme.dart'; // Ensure this path is correct for AppColors
 
 // Assuming ProductModel is defined like this:
@@ -20,8 +19,7 @@ import '../../../data/product_model.dart';
 class SuggestedProductCard extends StatelessWidget {
   final ProductModel product;
 
-  const SuggestedProductCard({Key? key, required this.product})
-    : super(key: key);
+  const SuggestedProductCard({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +34,8 @@ class SuggestedProductCard extends StatelessWidget {
 
     // Safely get price, handling potential empty list or null values
     final String displayPrice =
-        (product.sellingPrice != null &&
-            product.sellingPrice.isNotEmpty &&
-            product.sellingPrice[0].price != null)
-        ? "₹${product.sellingPrice[0].price!.toStringAsFixed(2)}" // Format to 2 decimal places
+        (product.sellingPrice.isNotEmpty)
+        ? "₹${product.sellingPrice[0].price.toStringAsFixed(2)}" // Format to 2 decimal places
         : "₹0.00"; // Default value
 
     return Container(

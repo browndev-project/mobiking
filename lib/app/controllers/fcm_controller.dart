@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart'; // Import for Colors and Get.snackbar
 import 'package:firebase_messaging/firebase_messaging.dart'; // To use AuthorizationStatus enum
 
 // Import your FirebaseMessagingService.
@@ -37,14 +37,14 @@ class FcmController extends GetxController {
     String? token = await _firebaseMessagingService.getFCMToken();
     if (token != null) {
       fcmToken.value = token;
-      print("FCM Token in FcmController: ${fcmToken.value}");
+      debugPrint("FCM Token in FcmController: ${fcmToken.value}");
       // TODO: IMPORTANT!
       // This is the point where you would typically send this FCM token to your backend.
       // Your backend should associate this token with the currently logged-in user.
       // Example: YourApiRepository().sendFCMToken(token, currentUserId);
     } else {
       fcmToken.value = 'Token not available or permission denied.';
-      print("FCM Token not available in FcmController.");
+      debugPrint("FCM Token not available in FcmController.");
     }
   }
 
@@ -53,7 +53,7 @@ class FcmController extends GetxController {
   Future<void> _checkNotificationPermissionStatus() async {
     notificationStatus.value = await _firebaseMessagingService
         .getNotificationPermissionStatus();
-    print("Notification Permission Status: ${notificationStatus.value}");
+    debugPrint("Notification Permission Status: ${notificationStatus.value}");
   }
 
   /// Requests notification permissions from the user via the `FirebaseMessagingService`.

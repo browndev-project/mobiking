@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mobiking/app/controllers/login_controller.dart';
-import 'package:mobiking/app/modules/bottombar/Bottom_bar.dart';
-import 'package:mobiking/app/modules/login/login_screen.dart';
+import 'package:mobiking/app/modules/bottombar/bottom_bar.dart';
 
 import '../controllers/category_controller.dart';
 import '../controllers/home_controller.dart';
@@ -10,7 +8,7 @@ import '../controllers/product_controller.dart';
 import '../controllers/sub_category_controller.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -35,8 +33,8 @@ class _SplashScreenState extends State<SplashScreen> {
     subCategoryController.loadSubCategories();
     homeController.fetchHomeLayout();
 
-    // Increased delay to 2500ms so the logo animation can play fully
-    await Future.delayed(const Duration(milliseconds: 2500));
+    // Reduced delay for fast, responsive app launch
+    await Future.delayed(const Duration(milliseconds: 600));
     
     // ✅ APP STORE COMPLIANCE: Always allow users to enter the app to browse.
     // We only require login for account-based features (Adding to Cart, Checkout).

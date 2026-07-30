@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../data/sub_category_model.dart';
 import '../data/product_model.dart';
@@ -37,13 +38,13 @@ class SubCategoryController extends GetxController {
         isInitialLoad.value = true;
       }
 
-      print('[SubCategoryController] Loading subcategories...');
+      debugPrint('[SubCategoryController] Loading subcategories...');
       final data = await _service.fetchSubCategories(
         forceRefresh: forceRefresh,
       );
       subCategories.assignAll(data);
 
-      print('[SubCategoryController] Loaded ${data.length} subcategories');
+      debugPrint('[SubCategoryController] Loaded ${data.length} subcategories');
 
       // Auto-select the first subcategory if available
       if (data.isNotEmpty && selectedSubCategory.value == null) {
@@ -53,8 +54,8 @@ class SubCategoryController extends GetxController {
       // Show success message only for forced refresh
       if (forceRefresh && data.isNotEmpty) {}
     } catch (e, stackTrace) {
-      print('[SubCategoryController] Error loading subcategories: $e');
-      print(stackTrace);
+      debugPrint('[SubCategoryController] Error loading subcategories: $e');
+      debugPrint(stackTrace.toString());
 
       await _service.clearCache(); // Clear cache on error
     } finally {
@@ -75,9 +76,9 @@ class SubCategoryController extends GetxController {
         selectedSubCategory.value = newItem;
       }
 
-      print('[SubCategoryController] Subcategory added: ${newItem.name}');
+      debugPrint('[SubCategoryController] Subcategory added: ${newItem.name}');
     } catch (e) {
-      print('[SubCategoryController] Error adding subcategory: $e');
+      debugPrint('[SubCategoryController] Error adding subcategory: $e');
       // Get.snackbar('Error', 'Failed to add subcategory: $e');
     } finally {
       isLoading.value = false;
@@ -104,12 +105,12 @@ class SubCategoryController extends GetxController {
       });
 
       productsForSelectedSubCategory.assignAll(products);
-      print(
+      debugPrint(
         '[SubCategoryController] Updated & Sorted products: ${productsForSelectedSubCategory.length} for ${selectedSubCategory.value!.name}',
       );
     } else {
       productsForSelectedSubCategory.clear();
-      print(
+      debugPrint(
         '[SubCategoryController] Cleared products as no subcategory selected',
       );
     }
@@ -125,7 +126,7 @@ class SubCategoryController extends GetxController {
     try {
       await _service.clearCache();
     } catch (e) {
-      print('[SubCategoryController] Error clearing cache: $e');
+      debugPrint('[SubCategoryController] Error clearing cache: $e');
     }
   }
 
@@ -139,7 +140,7 @@ class SubCategoryController extends GetxController {
         'isCacheValid': cacheInfo['isCacheValid'] ?? false,
       };
     } catch (e) {
-      print('[SubCategoryController] Error getting cache info: $e');
+      debugPrint('[SubCategoryController] Error getting cache info: $e');
       return {'cachedItemsCount': 0, 'lastFetch': null, 'isCacheValid': false};
     }
   }

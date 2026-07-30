@@ -42,10 +42,10 @@ void showDeleteAccountDialog(BuildContext context) {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.danger.withOpacity(0.1),
+                color: AppColors.danger.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.danger.withOpacity(0.3),
+                  color: AppColors.danger.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -114,6 +114,7 @@ void showDeleteAccountDialog(BuildContext context) {
                         context,
                       );
                       if (confirmed == true) {
+                        if (!context.mounted) return;
                         Navigator.of(context).pop(); // Close current dialog
 
                         // Call delete account method
@@ -122,7 +123,7 @@ void showDeleteAccountDialog(BuildContext context) {
                         if (!success) {
                           // Error handling is done in the controller via snackbar
                           // No additional action needed here
-                          print(
+                          debugPrint(
                             'Delete account failed - error shown via controller',
                           );
                         }
@@ -240,7 +241,7 @@ Future<bool?> _showFinalConfirmationDialog(BuildContext context) {
               decoration: InputDecoration(
                 hintText: 'Type DELETE to confirm',
                 hintStyle: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textLight.withOpacity(0.6),
+                  color: AppColors.textLight.withValues(alpha: 0.6),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -249,7 +250,7 @@ Future<bool?> _showFinalConfirmationDialog(BuildContext context) {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
-                    color: AppColors.danger.withOpacity(0.5),
+                    color: AppColors.danger.withValues(alpha: 0.5),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(

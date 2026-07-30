@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import '../data/product_model.dart';
 
 class ProductService {
@@ -239,7 +239,7 @@ class ProductService {
   }
 
   void _log(String message) {
-    print('[ProductService] $message');
+    debugPrint('[ProductService] $message');
   }
 }
 

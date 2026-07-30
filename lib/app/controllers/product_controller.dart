@@ -30,11 +30,11 @@ class ProductController extends GetxController {
   int _totalProductsLoaded = 0;
 
   // 🚀 LAZY LOADING: Cache management
-  final int _maxCacheSize = 200; // Limit memory usage
+  final int maxCacheSize = 200; // Limit memory usage
   var _lastFetchTime = DateTime.now();
 
   // 🚀 OPTIMIZATION: Request debouncing
-  static const Duration _debounceDelay = Duration(milliseconds: 300);
+  static const Duration debounceDelay = Duration(milliseconds: 300);
   Timer? _debounceTimer;
 
   @override
@@ -45,14 +45,14 @@ class ProductController extends GetxController {
 
   /// 🚀 LAZY LOADING: Initialize but don't fetch data immediately
   void _initializeLazyLoading() {
-    print("🎯 ProductController initialized - Ready for lazy loading");
+    debugPrint("🎯 ProductController initialized - Ready for lazy loading");
     // Don't fetch data here - let the UI components request it when needed
   }
 
   /// 🚀 LAZY LOADING: Fetch products only when UI requests them
   Future<void> loadProductsOnDemand() async {
     if (initialLoadCompleted.value && allProducts.isNotEmpty) {
-      print("📋 Products already loaded, skipping initial fetch");
+      debugPrint("📋 Products already loaded, skipping initial fetch");
       return;
     }
 
@@ -62,12 +62,12 @@ class ProductController extends GetxController {
   /// 🔰 OPTIMIZED: Fetch first batch of products
   Future<void> fetchInitialProducts() async {
     if (isLoading.value) {
-      print("⏳ Already loading, skipping duplicate request");
+      debugPrint("⏳ Already loading, skipping duplicate request");
       return;
     }
 
     try {
-      print("🚀 Starting initial product fetch...");
+      debugPrint("🚀 Starting initial product fetch...");
       isLoading.value = true;
       _currentPage = 1;
       _totalProductsLoaded = 0;
@@ -80,7 +80,7 @@ class ProductController extends GetxController {
       // Filter for active products
       final activeProducts = products.where((p) => p.active == true).toList();
 
-      print("✅ Fetched ${activeProducts.length} initial active products");
+      debugPrint("✅ Fetched ${activeProducts.length} initial active products");
 
       allProducts.assignAll(activeProducts);
       _totalProductsLoaded = activeProducts.length;
@@ -91,7 +91,7 @@ class ProductController extends GetxController {
       // 🚀 OPTIMIZATION: Pre-cache images in background
       _preCacheProductImages(activeProducts);
     } catch (e) {
-      print('❌ Error fetching initial products: $e');
+      debugPrint('❌ Error fetching initial products: $e');
       hasMoreProducts.value = false;
     } finally {
       isLoading.value = false;
@@ -102,7 +102,7 @@ class ProductController extends GetxController {
   Future<void> fetchMoreProducts() async {
     // 🚀 OPTIMIZATION: Prevent duplicate requests
     if (isFetchingMore.value || !hasMoreProducts.value || isLoading.value) {
-      print(
+      debugPrint(
         "⏸ Skipping fetch more - isFetching: ${isFetchingMore.value}, hasMore: ${hasMoreProducts.value}",
       );
       return;
@@ -130,10 +130,10 @@ class ProductController extends GetxController {
 
       // 🚀 OPTIMIZATION: Pre-cache new images
       _preCacheProductImages(activeProducts);
-      
-      print("✅ Completed loading page $_currentPage (Total: $_totalProductsLoaded products)");
+
+      debugPrint("✅ Completed loading page $_currentPage (Total: $_totalProductsLoaded products)");
     } catch (e) {
-      print('❌ Error fetching more products: $e');
+      debugPrint('❌ Error fetching more products: $e');
       hasMoreProducts.value = false;
     } finally {
       isFetchingMore.value = false;
@@ -181,14 +181,14 @@ class ProductController extends GetxController {
         .toList();
 
     if (categoryProducts.length >= limit || !hasMoreProducts.value) {
-      print(
+      debugPrint(
         "📋 Using cached products for category $categoryId: ${categoryProducts.length} items",
       );
       return categoryProducts;
     }
 
     // If not enough in cache, fetch more data
-    print("🔄 Need more products for category $categoryId, fetching...");
+    debugPrint("🔄 Need more products for category $categoryId, fetching...");
     await loadProductsOnDemand();
 
     // Return updated results
@@ -212,7 +212,7 @@ class ProductController extends GetxController {
 
   Future<void> _executeSearch(String query) async {
     try {
-      print("🔍 Searching products for: '$query'");
+      debugPrint("🔍 Searching products for: '$query'");
       isLoading.value = true;
 
       final results = await _productService.searchProducts(query);
@@ -221,12 +221,12 @@ class ProductController extends GetxController {
       final activeResults = results.where((p) => p.active == true).toList();
 
       searchResults.assignAll(activeResults);
-      print("🎯 Found ${activeResults.length} active search results");
+      debugPrint("🎯 Found ${activeResults.length} active search results");
       
       // 🚀 OPTIMIZATION: Pre-cache search results
       _preCacheProductImages(activeResults);
     } catch (e) {
-      print('❌ Search error: $e');
+      debugPrint('❌ Search error: $e');
       searchResults.clear();
     } finally {
       isLoading.value = false;
@@ -242,12 +242,12 @@ class ProductController extends GetxController {
       );
 
       if (cachedProduct != null) {
-        print("⚡ Using cached product for slug: $slug");
+        debugPrint("⚡ Using cached product for slug: $slug");
         selectedProduct.value = cachedProduct;
         return;
       }
 
-      print("🔄 Fetching product by slug: $slug");
+      debugPrint("🔄 Fetching product by slug: $slug");
       isLoading.value = true;
       selectedProduct.value = null;
 
@@ -259,7 +259,7 @@ class ProductController extends GetxController {
         allProducts.add(product);
       }
     } catch (e) {
-      print('❌ Error fetching product by slug: $e');
+      debugPrint('❌ Error fetching product by slug: $e');
     } finally {
       isLoading.value = false;
     }
@@ -275,9 +275,9 @@ class ProductController extends GetxController {
       allProducts.insert(0, newProduct);
       _totalProductsLoaded++;
 
-      print("✅ Product added successfully: ${newProduct.name}");
+      debugPrint("✅ Product added successfully: ${newProduct.name}");
     } catch (e) {
-      print('❌ Error adding product: $e');
+      debugPrint('❌ Error adding product: $e');
     } finally {
       isLoading.value = false;
     }
@@ -302,7 +302,7 @@ class ProductController extends GetxController {
         .take(6)
         .toList(); // Limit to 6 for performance
 
-    print(
+    debugPrint(
       "🔗 Found ${relatedProducts.length} related products for category $parentCategory",
     );
     return relatedProducts;
@@ -313,9 +313,9 @@ class ProductController extends GetxController {
     String currentProductId,
     List<String> groupIds,
   ) {
-    print("DEBUG: currentProductId = $currentProductId");
-    print("DEBUG: groupIds = $groupIds");
-    print("DEBUG: allProducts.length = ${allProducts.length}");
+    debugPrint("DEBUG: currentProductId = $currentProductId");
+    debugPrint("DEBUG: groupIds = $groupIds");
+    debugPrint("DEBUG: allProducts.length = ${allProducts.length}");
 
     if (groupIds.isEmpty) {
       return [];
@@ -338,8 +338,8 @@ class ProductController extends GetxController {
         .take(6)
         .toList();
 
-    print("DEBUG: found ${relatedProducts.length} related products");
-    print(
+    debugPrint("DEBUG: found ${relatedProducts.length} related products");
+    debugPrint(
       "🔗 Found ${relatedProducts.length} related products for groups $groupIds",
     );
     return relatedProducts;
@@ -347,7 +347,7 @@ class ProductController extends GetxController {
 
   /// 🚀 OPTIMIZATION: Force refresh data
   Future<void> refreshProducts() async {
-    print("🔄 Refreshing all products...");
+    debugPrint("🔄 Refreshing all products...");
     allProducts.clear();
     _currentPage = 0;
     _totalProductsLoaded = 0;
@@ -359,7 +359,7 @@ class ProductController extends GetxController {
 
   /// 🚀 OPTIMIZATION: Clear cache and reset state
   void clearCache() {
-    print("🧹 Clearing product cache...");
+    debugPrint("🧹 Clearing product cache...");
     allProducts.clear();
     searchResults.clear();
     selectedProduct.value = null;
@@ -399,7 +399,7 @@ class ProductController extends GetxController {
       // 🚀 OPTIMIZATION: Pre-cache related products
       _preCacheProductImages(products);
     } catch (e) {
-      print('Error fetching related products: $e');
+      debugPrint('Error fetching related products: $e');
     } finally {
       isFetchingRelatedProducts.value = false;
     }

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -10,18 +9,17 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
-import 'package:mobiking/app/modules/bottombar/Bottom_bar.dart';
+import 'package:mobiking/app/modules/bottombar/bottom_bar.dart';
 import 'package:mobiking/app/modules/orders/order_screen.dart';
-import 'package:mobiking/app/themes/app_theme.dart';
-import 'package:mobiking/app/controllers/login_controller.dart';
+
 
 class FirebaseMessagingService extends GetxService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   void _log(String message) {
-    print('[FirebaseMessagingService] $message');
+    debugPrint('[FirebaseMessagingService] $message');
   }
 
   @override
@@ -104,7 +102,7 @@ class FirebaseMessagingService extends GetxService {
     }
   }
 
-  Future<void> _showLocalNotification(String title, String body, String? imageUrl, Map<String, dynamic> data) async {
+  Future<void> showLocalNotification(String title, String body, String? imageUrl, Map<String, dynamic> data) async {
     try {
       String? bigPicturePath;
       String? largeIconPath;
@@ -199,7 +197,6 @@ class FirebaseMessagingService extends GetxService {
       final context = Get.key.currentContext;
       if (context == null) return;
       OverlayState? overlay = Overlay.of(context);
-      if (overlay == null) return;
 
       late OverlayEntry entry;
       entry = OverlayEntry(
@@ -233,7 +230,9 @@ class FirebaseMessagingService extends GetxService {
   Future<void> _subscribeToAllUsersTopic() async {
     try {
       await _firebaseMessaging.subscribeToTopic('allUsers');
-    } catch (e) {}
+    }finally{
+
+    }
   }
 
   Future<String?> getFCMToken() async => await _firebaseMessaging.getToken();

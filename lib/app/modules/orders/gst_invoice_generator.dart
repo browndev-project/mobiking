@@ -23,7 +23,7 @@ class GstInvoiceGenerator {
 
       final invoiceDate = DateFormat(
         'dd/MM/yyyy',
-      ).format(order.createdAt?.toLocal() ?? DateTime.now());
+      ).format(order.createdAt.toLocal());
 
       // Processing items
       final processedItems = order.items.map<Map<String, dynamic>>((item) {
@@ -576,7 +576,7 @@ class GstInvoiceGenerator {
       Get.snackbar(
         "Generating Invoice",
         "Please wait while we prepare your document...",
-        backgroundColor: AppColors.primaryPurple.withOpacity(0.9),
+        backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.9),
         colorText: Colors.white,
         duration: const Duration(seconds: 2),
         snackPosition: SnackPosition.BOTTOM,
@@ -689,8 +689,9 @@ class GstInvoiceGenerator {
     ];
 
     if (n < 20) return units[n];
-    if (n < 100)
+    if (n < 100) {
       return "${tens[n ~/ 10]}${n % 10 != 0 ? " ${units[n % 10]}" : ""}";
+    }
     return "${units[n ~/ 100]} Hundred${n % 100 != 0 ? " and ${_convertLessThanThousand(n % 100)}" : ""}";
   }
 }

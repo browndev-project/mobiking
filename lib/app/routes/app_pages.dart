@@ -1,21 +1,18 @@
 import 'package:get/get.dart';
-import 'package:mobiking/app/modules/address/AddressPage.dart';
-import 'package:mobiking/app/modules/checkout/CheckoutScreen.dart';
+import 'package:mobiking/app/modules/address/address_page.dart';
+import 'package:mobiking/app/modules/checkout/checkout_screen.dart';
 import 'package:mobiking/app/modules/home/home_screen.dart';
 import '../modules/profile/profile_screen.dart';
 import '../bindings/user_binding.dart';
 
-import 'package:get/get.dart';
+
 
 import '../bindings/address_binding.dart';
 import '../bindings/cart_binding.dart';
 import '../bindings/category_binding.dart';
 import '../bindings/group_binding.dart';
-import '../bindings/order_binding.dart';
-import '../bindings/product_binding.dart';
 import '../bindings/stock_binding.dart';
 import '../bindings/sub_category_binding.dart';
-import '../bindings/user_binding.dart';
 
 class AppPages {
   static final routes = [

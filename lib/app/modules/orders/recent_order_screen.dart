@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class RecentOrdersScreen extends StatelessWidget {
-  const RecentOrdersScreen({Key? key}) : super(key: key);
+  const RecentOrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:get_storage/get_storage.dart'; // Import GetStorage
-import '../data/Home_model.dart';
+import '../data/home_model.dart';
 import '../data/group_model.dart';
 
 class HomeService {
@@ -13,7 +13,7 @@ class HomeService {
   HomeService(this._box); // Constructor to receive GetStorage
 
   void _log(String message) {
-    print('[HomeService] $message');
+    debugPrint('[HomeService] $message');
   }
 
   /// 1. Fetch App Categories (Includes banners)

@@ -1,4 +1,6 @@
 // models/coupon_model.dart
+import 'package:flutter/material.dart';
+
 class CouponModel {
   final String id;
   final String code;
@@ -88,13 +90,13 @@ class CouponModel {
         // Handle timestamp in milliseconds
         return DateTime.fromMillisecondsSinceEpoch(dateValue);
       } else {
-        print(
+        debugPrint(
           'Unknown date type: ${dateValue.runtimeType} - Value: $dateValue',
         );
         return null;
       }
     } catch (e) {
-      print('Error parsing date: $dateValue (${dateValue.runtimeType}) - $e');
+      debugPrint('Error parsing date: $dateValue (${dateValue.runtimeType}) - $e');
       return null;
     }
   }
@@ -127,7 +129,7 @@ class CouponModel {
       // Inclusive of startDate
       return !now.isBefore(startDate) && now.isBefore(endDate);
     } catch (e) {
-      print('Error checking coupon validity: $e');
+      debugPrint('Error checking coupon validity: $e');
       return false;
     }
   }
@@ -138,7 +140,7 @@ class CouponModel {
       if (value.isEmpty) return 0.0;
       return double.tryParse(value.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
     } catch (e) {
-      print('Error parsing discount value: $e');
+      debugPrint('Error parsing discount value: $e');
       return 0.0;
     }
   }
@@ -149,7 +151,7 @@ class CouponModel {
       if (percent.isEmpty) return 0.0;
       return double.tryParse(percent.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
     } catch (e) {
-      print('Error parsing discount percent: $e');
+      debugPrint('Error parsing discount percent: $e');
       return 0.0;
     }
   }
@@ -159,7 +161,7 @@ class CouponModel {
     try {
       return DateTime.now().isAfter(endDate);
     } catch (e) {
-      print('Error checking if coupon is expired: $e');
+      debugPrint('Error checking if coupon is expired: $e');
       return true; // Assume expired on error
     }
   }
@@ -169,7 +171,7 @@ class CouponModel {
     try {
       return DateTime.now().isBefore(startDate);
     } catch (e) {
-      print('Error checking if coupon is not yet active: $e');
+      debugPrint('Error checking if coupon is not yet active: $e');
       return false; // Assume active on error
     }
   }
@@ -226,7 +228,7 @@ class CouponResponse {
         couponData = CouponModel.fromJson(json['data'] as Map<String, dynamic>);
       }
     } catch (e) {
-      print('Error parsing coupon data: $e');
+      debugPrint('Error parsing coupon data: $e');
       couponData = null;
     }
 
@@ -276,14 +278,14 @@ class CouponListResponse {
                 coupons.add(coupon);
               }
             } catch (e) {
-              print('Error parsing individual coupon: $e');
+              debugPrint('Error parsing individual coupon: $e');
               // Skip this coupon but continue with others
             }
           }
         }
       }
     } catch (e) {
-      print('Error parsing coupons list: $e');
+      debugPrint('Error parsing coupons list: $e');
     }
 
     return CouponListResponse(

@@ -9,19 +9,19 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:mobiking/app/controllers/connectivity_controller.dart';
-import 'package:mobiking/app/modules/Order_confirmation/Confirmation_screen.dart';
+import 'package:mobiking/app/modules/Order_confirmation/confirmation_screen.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 // Import your data models
-import '../data/AddressModel.dart';
-import '../data/Order_get_data.dart';
+import '../data/address_model.dart';
+import '../data/order_get_data.dart';
 import '../data/order_model.dart';
 import '../data/razor_pay.dart';
 
 // Import your controllers and services
 import '../controllers/cart_controller.dart';
 import '../controllers/address_controller.dart';
-import '../modules/address/AddressPage.dart';
+import '../modules/address/address_page.dart';
 import '../services/order_service.dart';
 import '../themes/app_theme.dart';
 import '../utils/reasons.dart';
@@ -31,13 +31,13 @@ import '../services/analytics_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 
 class RazorpayErrorCodes {
-  static const int PAYMENT_CANCELLED = 0;
-  static const int NETWORK_ERROR = 1;
-  static const int INVALID_CREDENTIALS = 2;
-  static const int AMOUNT_LIMIT_EXCEEDED = 3;
-  static const int BAD_REQUEST_ERROR = 4;
-  static const int SERVER_ERROR = 5;
-  static const int GATEWAY_ERROR = 6;
+  static const int paymentCancelled = 0;
+  static const int networkError = 1;
+  static const int invalidCredentials = 2;
+  static const int amountLimitExceeded = 3;
+  static const int badRequestError = 4;
+  static const int serverError = 5;
+  static const int gatewayError = 6;
 }
 
 // Helper classes for better organization
@@ -111,14 +111,14 @@ void _showModernSnackbar(
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: textColor ?? Colors.white.withOpacity(0.9),
+          color: textColor ?? Colors.white.withValues(alpha: 0.9),
         ),
       ),
       icon: icon != null
           ? Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: textColor ?? Colors.white, size: 20),
@@ -140,7 +140,7 @@ void _showModernSnackbar(
       reverseAnimationCurve: Curves.easeInBack,
       boxShadows: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.2),
+          color: Colors.black.withValues(alpha: 0.2),
           blurRadius: 8,
           offset: const Offset(0, 4),
         ),
@@ -166,7 +166,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   // FIXED: Store complete order data instead of just IDs
   String? _currentBackendOrderId;
   String? _currentRazorpayOrderId;
-  Map? _currentOrderData;
+  Map? currentOrderData;
   CreateOrderRequestModel? _currentOrderRequest;
   Timer? _pollingTimer;
 
@@ -179,10 +179,10 @@ class OrderController extends GetxController with WidgetsBindingObserver {
 
   // NEW: Tracking for inventory restoration
   Timer? _backgroundTimer;
-  bool _isPaymentProcessActive = false; // Flag to track if payment modal is open
+  bool isPaymentProcessActive = false; // Flag to track if payment modal is open
   static const String _ongoingOrderKey = 'pending_order_id_for_restore';
 
-  static const List STATUS_PROGRESS = [
+  static const List statusProgress = [
     "Picked Up",
     "IN TRANSIT",
     "Shipped",
@@ -240,7 +240,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   */
 
   // Startup cleanup for abandoned orders
-  Future<void> _checkAndCleanupAbandonedOrder() async {
+  Future<void> checkAndCleanupAbandonedOrder() async {
     final String? abandonedOrderId = _box.read(_ongoingOrderKey);
     if (abandonedOrderId != null && abandonedOrderId.isNotEmpty) {
       debugPrint('🏁 OrderController: Found abandoned order $abandonedOrderId on startup. Restoring inventory...');
@@ -257,7 +257,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   }
 
   // Unified helper for inventory restoration
-  Future<void> _restoreInventoryIfPossible({String reason = 'Unknown'}) async {
+  Future<void> restoreInventoryIfPossible({String reason = 'Unknown'}) async {
     final String? orderIdToRestore = _currentBackendOrderId ?? _box.read(_ongoingOrderKey);
     
     if (orderIdToRestore != null && orderIdToRestore.isNotEmpty) {
@@ -273,7 +273,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       */
 
       // Cleanup local state
-      _isPaymentProcessActive = false;
+      isPaymentProcessActive = false;
       _backgroundTimer?.cancel();
       _box.remove(_ongoingOrderKey);
       
@@ -285,16 +285,16 @@ class OrderController extends GetxController with WidgetsBindingObserver {
 
   void resetGST() {
     gstNumber.value = '';
-    print('OrderController: GST number reset');
+    debugPrint('OrderController: GST number reset');
   }
 
   Future _handleConnectionRestored() async {
     final token = _box.read('token') ?? _box.read('accessToken');
     if (token == null || token.toString().isEmpty) {
-      print('OrderController: Internet connection restored (Guest mode, skipping order fetch).');
+      debugPrint('OrderController: Internet connection restored (Guest mode, skipping order fetch).');
       return;
     }
-    print(
+    debugPrint(
       'OrderController: Internet connection restored. Re-fetching order history...',
     );
     await fetchOrderHistory();
@@ -308,13 +308,13 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       final itemVariantName =
           item['variantName'] as String? ??
           'Default'; // Get variant name from cart item
-      print(
+      debugPrint(
         'Calculating subtotal for item: ${productData['name']}, variant: $itemVariantName, quantity: $quantity',
       );
 
       if (productData is Map<String, dynamic>) {
         final product = ProductModel.fromJson(productData);
-        print(
+        debugPrint(
           'Product selling prices: ${product.sellingPrice.map((e) => '${e.variantName}: ${e.price}').toList()}',
         );
 
@@ -323,24 +323,22 @@ class OrderController extends GetxController with WidgetsBindingObserver {
           (sp) => sp.variantName == itemVariantName,
         );
 
-        if (sellingPriceForVariant != null &&
-            sellingPriceForVariant.price != null) {
-          final itemPrice = sellingPriceForVariant.price!.toDouble();
-          print('Found matching variant. Price: $itemPrice');
+        if (sellingPriceForVariant != null) {
+          final itemPrice = sellingPriceForVariant.price.toDouble();
+          debugPrint('Found matching variant. Price: $itemPrice');
           total += itemPrice * quantity;
         } else {
-          print('Variant not found. Using fallback.');
+          debugPrint('Variant not found. Using fallback.');
           // Fallback if variant price not found, use last selling price if available
-          if (product.sellingPrice.isNotEmpty &&
-              product.sellingPrice.last.price != null) {
-            final itemPrice = product.sellingPrice.last.price!.toDouble();
-            print('Fallback price: $itemPrice');
+          if (product.sellingPrice.isNotEmpty) {
+            final itemPrice = product.sellingPrice.last.price.toDouble();
+            debugPrint('Fallback price: $itemPrice');
             total += itemPrice * quantity;
           }
         }
       }
     }
-    print('Total subtotal: $total');
+    debugPrint('Total subtotal: $total');
     return total;
   }
 
@@ -350,7 +348,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
     _razorpay.clear();
     _pollingTimer?.cancel();
     _backgroundTimer?.cancel();
-    print('Razorpay listeners cleared.');
+    debugPrint('Razorpay listeners cleared.');
     super.onClose();
   }
 
@@ -406,7 +404,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       debugPrint('🔄 Verifying payment with backend...');
 
       // Verify payment with backend
-      final verifiedOrder = await _orderService.verifyRazorpayPayment(
+ await _orderService.verifyRazorpayPayment(
         verifyRequest,
       );
       debugPrint('✅ Payment verification API response received');
@@ -535,7 +533,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       );
     } finally {
       isLoading.value = false;
-      _isPaymentProcessActive = false;
+      isPaymentProcessActive = false;
       _backgroundTimer?.cancel();
       _box.remove(_ongoingOrderKey);
       _resetOrderState();
@@ -543,7 +541,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   }
 
   // ADDED: Extract order ID directly from API response before model conversion
-  String? _extractOrderIdFromApiResponse(dynamic apiResponse) {
+  String? extractOrderIdFromApiResponse(dynamic apiResponse) {
     debugPrint('🔍 === EXTRACTING ORDER ID FROM API RESPONSE ===');
 
     try {
@@ -661,12 +659,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   }
 
   // ENHANCED: Build complete order data from API response
-  Future<Map<String, dynamic>> _buildCompleteOrderDataFromApiResponse({
-    required dynamic apiResponse,
-    required CreateOrderRequestModel orderRequest,
-    required PaymentSuccessResponse paymentResponse,
-    required String verifiedOrderId,
-  }) async {
+  Future<Map<String, dynamic>>buildCompleteOrderDataFromApiResponse({required dynamic apiResponse, required CreateOrderRequestModel orderRequest, required PaymentSuccessResponse paymentResponse, required String verifiedOrderId,}) async {
     try {
       debugPrint('🔧 === BUILDING COMPLETE ORDER DATA FROM API RESPONSE ===');
 
@@ -772,7 +765,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
 
   // Getters for verified order data
   String get verifiedOrderId => _verifiedOrderId.value;
-  Map<String, dynamic> get verifiedOrderData => _verifiedOrderData.value;
+  Map<String, dynamic> get verifiedOrderData => _verifiedOrderData;
 
   void _handlePaymentError(PaymentFailureResponse response) {
     debugPrint('❌ === PAYMENT ERROR HANDLER ===');
@@ -783,14 +776,14 @@ class OrderController extends GetxController with WidgetsBindingObserver {
     String errorMessage = 'Payment failed. Please try again.';
 
     // Case 1: Handle user cancellation explicitly
-    if (response.code == RazorpayErrorCodes.PAYMENT_CANCELLED) {
+    if (response.code == RazorpayErrorCodes.paymentCancelled) {
       errorMessage = 'Payment was cancelled by user.';
       // _restoreInventoryIfPossible(reason: 'User Cancelled');
     } else {
       // For any other error, we still want to clear the active payment flag 
       // but we might not restore inventory immediately to allow for potential retry UI
       // However, to keep it simple and safe as per client requirements:
-      _isPaymentProcessActive = false;
+      isPaymentProcessActive = false;
       _backgroundTimer?.cancel();
       _box.remove(_ongoingOrderKey);
     }
@@ -799,25 +792,25 @@ class OrderController extends GetxController with WidgetsBindingObserver {
 
     // FIXED: Use custom error codes instead of Razorpay constants
     switch (response.code) {
-      case RazorpayErrorCodes.PAYMENT_CANCELLED:
+      case RazorpayErrorCodes.paymentCancelled:
         errorMessage = 'Payment was cancelled by user.';
         break;
-      case RazorpayErrorCodes.NETWORK_ERROR:
+      case RazorpayErrorCodes.networkError:
         errorMessage = 'Network error. Please check your connection.';
         break;
-      case RazorpayErrorCodes.INVALID_CREDENTIALS:
+      case RazorpayErrorCodes.invalidCredentials:
         errorMessage = 'Invalid payment credentials. Please contact support.';
         break;
-      case RazorpayErrorCodes.AMOUNT_LIMIT_EXCEEDED:
+      case RazorpayErrorCodes.amountLimitExceeded:
         errorMessage = 'Payment amount exceeds limit.';
         break;
-      case RazorpayErrorCodes.BAD_REQUEST_ERROR:
+      case RazorpayErrorCodes.badRequestError:
         errorMessage = 'Invalid payment request. Please try again.';
         break;
-      case RazorpayErrorCodes.SERVER_ERROR:
+      case RazorpayErrorCodes.serverError:
         errorMessage = 'Payment server error. Please try again later.';
         break;
-      case RazorpayErrorCodes.GATEWAY_ERROR:
+      case RazorpayErrorCodes.gatewayError:
         errorMessage = 'Payment gateway error. Please try again.';
         break;
       default:
@@ -876,14 +869,14 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   Future _resetOrderState() async {
     _currentBackendOrderId = null;
     _currentRazorpayOrderId = null;
-    _currentOrderData = null;
+    currentOrderData = null;
     _currentOrderRequest = null;
     _verifiedOrderId.value = '';
     _verifiedOrderData.clear();
     isLoading.value = false;
     
     // Safety: ensure flags are reset
-    _isPaymentProcessActive = false;
+    isPaymentProcessActive = false;
     _backgroundTimer?.cancel();
     _box.remove(_ongoingOrderKey);
   }
@@ -937,7 +930,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
     debugPrint(
       '✅ User info verified: ID=$userId, Name=$name, Email=$email, Phone=$phone',
     );
-    return UserInfo(userId: userId!, name: name!, email: email!, phone: phone!);
+    return UserInfo(userId: userId!, name: name, email: email!, phone: phone!);
   }
 
   // Check if user info is incomplete
@@ -1233,7 +1226,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10.0,
                   offset: const Offset(0.0, 10.0),
                 ),
@@ -1245,7 +1238,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryPurple.withOpacity(0.1),
+                    color: AppColors.primaryPurple.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -1506,7 +1499,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       }
 
       // Store the complete response for debugging
-      _currentOrderData = response;
+      currentOrderData = response;
 
       // Validate the response from backend
       final paymentData = _validateOnlinePaymentResponse(response);
@@ -1556,7 +1549,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       debugPrint('💳 Opening Razorpay payment gateway...');
 
       // Open Razorpay payment gateway
-      _isPaymentProcessActive = true;
+      isPaymentProcessActive = true;
       if (_currentBackendOrderId != null) {
         _box.write(_ongoingOrderKey, _currentBackendOrderId);
       }
@@ -1922,7 +1915,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
   }
 
   // Improved snackbar methods
-  void _showSuccessSnackbar(
+  void showSuccessSnackbar(
     String title,
     String message,
     IconData icon, {
@@ -1951,7 +1944,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
       message,
       isError: false,
       icon: icon,
-      backgroundColor: AppColors.textLight.withOpacity(0.8),
+      backgroundColor: AppColors.textLight.withValues(alpha: 0.8),
       snackPosition: SnackPosition.TOP,
       duration: duration,
     );
@@ -2011,45 +2004,41 @@ class OrderController extends GetxController with WidgetsBindingObserver {
     return orderHistory.firstWhereOrNull((order) => order.id == orderId);
   }
 
-  Future<OrderModel?> OrderById(String orderId) async {
+  Future<OrderModel?> fetchOrderById(String orderId) async {
     OrderModel? order = orderHistory.firstWhereOrNull((o) => o.id == orderId);
 
     if (order != null) {
-      print('OrderController: Order found in local cache: $orderId');
+      debugPrint('OrderController: Order found in local cache: $orderId');
       return order;
     }
 
     isLoading.value = true;
     try {
-      print('OrderController: Fetching order $orderId from backend...');
+      debugPrint('OrderController: Fetching order $orderId from backend...');
       order = await _orderService.getOrderDetails(orderId: orderId);
 
-      if (order != null) {
-        final int index = orderHistory.indexWhere((o) => o.id == order!.id);
-        if (index != -1) {
-          orderHistory[index] = order;
-        } else {
-          orderHistory.add(order);
-        }
-
-        orderHistory.sort(
-          (a, b) => b.createdAt?.compareTo(a.createdAt ?? DateTime(0)) ?? 0,
-        );
-        print(
-          'OrderController: Order $orderId fetched from backend and updated/added to local cache.',
-        );
+      final int index = orderHistory.indexWhere((o) => o.id == order!.id);
+      if (index != -1) {
+        orderHistory[index] = order;
       } else {
-        print('OrderController: Order $orderId not found on backend.');
+        orderHistory.add(order);
       }
+
+      orderHistory.sort(
+        (a, b) => b.createdAt.compareTo(a.createdAt ) ,
+      );
+      debugPrint(
+        'OrderController: Order $orderId fetched from backend and updated/added to local cache.',
+      );
 
       return order;
     } on OrderServiceException catch (e) {
-      print(
+      debugPrint(
         'OrderController: Error fetching order $orderId from backend: ${e.message}',
       );
       return null;
     } catch (e) {
-      print('OrderController: Unexpected error getting order $orderId: $e');
+      debugPrint('OrderController: Unexpected error getting order $orderId: $e');
       return null;
     } finally {
       isLoading.value = false;
@@ -2116,6 +2105,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 10),
                   ...reasons.map((reasonOption) {
+                    // ignore: deprecated_member_use
                     return RadioListTile<String>(
                       title: Text(
                         reasonOption,
@@ -2125,7 +2115,9 @@ class OrderController extends GetxController with WidgetsBindingObserver {
                         ),
                       ),
                       value: reasonOption,
+                      // ignore: deprecated_member_use
                       groupValue: localSelectedReason.value,
+                      // ignore: deprecated_member_use
                       onChanged: (String? value) {
                         localSelectedReason.value = value!;
                       },
@@ -2135,7 +2127,7 @@ class OrderController extends GetxController with WidgetsBindingObserver {
                       ),
                       visualDensity: VisualDensity.compact,
                     );
-                  }).toList(),
+                  }),
                   if (localSelectedReason.value == 'Other')
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
@@ -2260,22 +2252,15 @@ class OrderController extends GetxController with WidgetsBindingObserver {
 
     isLoading.value = true;
     try {
-      Map response;
       String successMessage;
 
       switch (requestType) {
         case 'Cancel':
-          response = await _orderService.requestCancel(
-            orderId,
-            finalReasonToSend,
-          );
+          await _orderService.requestCancel(orderId, finalReasonToSend);
           successMessage = 'Cancel request sent successfully!';
           break;
         case 'Return':
-          response = await _orderService.requestReturn(
-            orderId,
-            finalReasonToSend,
-          );
+          await _orderService.requestReturn(orderId, finalReasonToSend);
           successMessage = 'Return request sent successfully!';
           break;
         default:
@@ -2306,15 +2291,15 @@ class OrderController extends GetxController with WidgetsBindingObserver {
         icon: Icons.warning_amber_rounded,
         backgroundColor: Colors.orange.shade700,
       );
-      print('Unexpected error: $e');
+      debugPrint('Unexpected error: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   bool _isSpecificRequestActive(OrderModel order, String type) {
-    if (order.requests == null || order.requests!.isEmpty) return false;
-    return order.requests!.any((r) {
+    if (order.requests.isEmpty) return false;
+    return order.requests.any((r) {
       final requestType = r.type.toLowerCase();
       final status = r.status.toLowerCase();
       return requestType == type.toLowerCase() &&

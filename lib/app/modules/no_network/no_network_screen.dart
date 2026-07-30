@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 // However, if your AppTheme still uses GoogleFonts for its base styles, keep it.
 // import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart'; // For animations, make sure it's in your pubspec.yaml
-import 'package:get/get.dart'; // For using GetX themes if available, and snackbars.
 
 import '../../themes/app_theme.dart'; // Assuming your AppColors and TextTheme are defined here
 
@@ -11,8 +10,7 @@ class NoNetworkScreen extends StatelessWidget {
   final VoidCallback onRetry;
   final String? message; // Optional custom message
 
-  const NoNetworkScreen({Key? key, required this.onRetry, this.message})
-    : super(key: key);
+  const NoNetworkScreen({super.key, required this.onRetry, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +41,7 @@ class NoNetworkScreen extends StatelessWidget {
                   return Icon(
                     Icons.cloud_off_rounded,
                     size: 150,
-                    color: AppColors.textLight.withOpacity(
+                    color: AppColors.textLight.withValues(alpha:
                       0.6,
                     ), // Use AppColors
                   );
@@ -67,7 +65,7 @@ class NoNetworkScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: textTheme.bodyLarge?.copyWith(
                   // Using bodyLarge
-                  color: AppColors.textDark.withOpacity(0.7), // Use AppColors
+                  color: AppColors.textDark.withValues(alpha: 0.7), // Use AppColors
                 ),
               ),
               const SizedBox(height: 40), // Increased spacing

@@ -5,7 +5,6 @@ import 'package:mobiking/app/controllers/category_controller.dart';
 import 'package:mobiking/app/controllers/connectivity_controller.dart';
 import 'package:mobiking/app/controllers/coupon_controller.dart';
 import 'package:mobiking/app/controllers/fcm_controller.dart';
-import 'package:mobiking/app/controllers/login_controller.dart';
 import 'package:mobiking/app/controllers/order_controller.dart';
 import 'package:mobiking/app/controllers/product_controller.dart';
 import 'package:mobiking/app/controllers/query_getx_controller.dart';
@@ -13,7 +12,9 @@ import 'package:mobiking/app/controllers/sub_category_controller.dart';
 import 'package:mobiking/app/controllers/system_ui_controller.dart';
 import 'package:mobiking/app/controllers/user_controller.dart';
 import 'package:mobiking/app/controllers/wishlist_controller.dart';
-import 'package:mobiking/app/controllers/BottomNavController.dart';
+
+import '../controllers/bottom_nav_controller.dart';
+
 
 class AppBinding extends Bindings {
   @override
@@ -27,10 +28,8 @@ class AppBinding extends Bindings {
     Get.put<CartController>(CartController());
     Get.put<WishlistController>(WishlistController());
     Get.put<SystemUIController>(SystemUIController());
-    Get.put<LoginController>(LoginController());
     Get.put<UserController>(UserController());
     Get.put<FcmController>(FcmController());
-    Get.put<CartController>(CartController());
 
     // Data Source Controllers
     Get.put<CategoryController>(CategoryController());

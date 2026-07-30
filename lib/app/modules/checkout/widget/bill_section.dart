@@ -10,13 +10,13 @@ class BillSection extends StatefulWidget {
   final TextEditingController gstNumberController; // Add this line
 
   const BillSection({
-    Key? key,
+    super.key,
     required this.itemTotal,
     required this.deliveryCharge,
     this.couponDiscount = 0.0, // ✅ Default to 0.0
     this.isCouponApplied = false, // ✅ Default to false
     required this.gstNumberController, // Add this line
-  }) : super(key: key);
+  });
 
   @override
   State<BillSection> createState() => _BillSectionState();
@@ -35,8 +35,9 @@ class _BillSectionState extends State<BillSection> {
   }
 
   double get _gstAmount {
-    if (!_hasGstNumber || !_showGstInput || _gstController.text.isEmpty)
+    if (!_hasGstNumber || !_showGstInput || _gstController.text.isEmpty) {
       return 0.0;
+    }
     final customGst = double.tryParse(_gstController.text) ?? 0.0;
     return (widget.itemTotal * customGst) / 100;
   }
@@ -95,9 +96,12 @@ class _BillSectionState extends State<BillSection> {
                     // GST Number Option
                     Row(
                       children: [
+                        // ignore: deprecated_member_use
                         Radio<bool>(
                           value: true,
+                          // ignore: deprecated_member_use
                           groupValue: _hasGstNumber,
+                          // ignore: deprecated_member_use
                           onChanged: (value) {
                             setDialogState(() {
                               _hasGstNumber = value ?? false;
@@ -123,9 +127,12 @@ class _BillSectionState extends State<BillSection> {
                     // No GST Number Option
                     Row(
                       children: [
+                        // ignore: deprecated_member_use
                         Radio<bool>(
                           value: false,
+                          // ignore: deprecated_member_use
                           groupValue: _hasGstNumber,
+                          // ignore: deprecated_member_use
                           onChanged: (value) {
                             setDialogState(() {
                               _hasGstNumber = value ?? true;
@@ -268,13 +275,13 @@ class _BillSectionState extends State<BillSection> {
                   ),
                   decoration: BoxDecoration(
                     color: _hasGstNumber
-                        ? AppColors.primaryPurple.withOpacity(0.1)
+                        ? AppColors.primaryPurple.withValues(alpha: 0.1)
                         : AppColors.neutralBackground,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _hasGstNumber
-                          ? AppColors.primaryPurple.withOpacity(0.3)
-                          : AppColors.textLight.withOpacity(0.3),
+                          ? AppColors.primaryPurple.withValues(alpha: 0.3)
+                          : AppColors.textLight.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -331,7 +338,7 @@ class _BillSectionState extends State<BillSection> {
           if (_hasGstNumber && _showGstInput) _buildGstSection(textTheme),
 
           const SizedBox(height: 4),
-          Divider(color: AppColors.textMedium.withOpacity(0.5), thickness: 1.5),
+          Divider(color: AppColors.textMedium.withValues(alpha: 0.5), thickness: 1.5),
           const SizedBox(height: 4),
 
           _buildBillRow("Grand total", _total, textTheme, isBold: true),
@@ -344,15 +351,15 @@ class _BillSectionState extends State<BillSection> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.success.withOpacity(0.1),
-                    AppColors.success.withOpacity(0.05),
+                    AppColors.success.withValues(alpha: 0.1),
+                    AppColors.success.withValues(alpha: 0.05),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.success.withOpacity(0.2)),
+                border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.success.withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: Offset(0, 5),
@@ -364,7 +371,7 @@ class _BillSectionState extends State<BillSection> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.2),
+                      color: AppColors.success.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Icon(
@@ -385,7 +392,7 @@ class _BillSectionState extends State<BillSection> {
                             fontWeight: FontWeight.w700,
                             shadows: [
                               Shadow(
-                                color: AppColors.success.withOpacity(0.25),
+                                color: AppColors.success.withValues(alpha: 0.25),
                                 offset: Offset(0, 2),
                                 blurRadius: 4,
                               ),
@@ -395,7 +402,7 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "Coupon discount applied successfully",
                           style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.success.withOpacity(0.8),
+                            color: AppColors.success.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -411,7 +418,7 @@ class _BillSectionState extends State<BillSection> {
                       gradient: LinearGradient(
                         colors: [
                           AppColors.success,
-                          AppColors.success.withOpacity(0.7),
+                          AppColors.success.withValues(alpha: 0.7),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -460,7 +467,7 @@ class _BillSectionState extends State<BillSection> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryPurple.withOpacity(0.1),
+                    color: AppColors.primaryPurple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

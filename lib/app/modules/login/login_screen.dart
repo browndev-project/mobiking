@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mobiking/app/controllers/login_controller.dart';
-import 'package:mobiking/app/modules/opt/Otp_screen.dart';
+import 'package:mobiking/app/modules/opt/otp_screen.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:mobiking/app/controllers/system_ui_controller.dart';
-import 'package:mobiking/app/modules/bottombar/Bottom_bar.dart'; // ✅ For skip button navigation
+import 'package:mobiking/app/modules/bottombar/bottom_bar.dart'; // ✅ For skip button navigation
 
 class PhoneAuthScreen extends StatelessWidget {
-  PhoneAuthScreen({Key? key}) : super(key: key);
+  PhoneAuthScreen({super.key});
 
   final LoginController loginController = Get.find();
   final SystemUIController systemUiController = Get.find();
@@ -42,9 +42,9 @@ class PhoneAuthScreen extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryPurple.withOpacity(0.08),
+                AppColors.primaryPurple.withValues(alpha:0.08),
                 AppColors.white,
-                AppColors.primaryPurple.withOpacity(0.03),
+                AppColors.primaryPurple.withValues(alpha:0.03),
               ],
               stops: const [0.0, 0.6, 1.0],
             ),
@@ -66,7 +66,7 @@ class PhoneAuthScreen extends StatelessWidget {
 
   // Refined Product Showcase - Limited to upper half only
   Widget _buildProductShowcase(double screenHeight, double screenWidth) {
-    return Container(
+    return SizedBox(
       height: screenHeight * 0.5, // Restrict to upper half only
       width: screenWidth,
       child: Stack(
@@ -191,11 +191,11 @@ class PhoneAuthScreen extends StatelessWidget {
       height: cardSize,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.6),
-        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
+        color: Colors.white.withValues(alpha:0.6),
+        border: Border.all(color: Colors.white.withValues(alpha:0.4), width: 1),
         boxShadow: [
           BoxShadow(
-            color: _getProductColor(index).withOpacity(0.15),
+            color: _getProductColor(index).withValues(alpha:0.15),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -209,8 +209,8 @@ class PhoneAuthScreen extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                _getProductColor(index).withOpacity(0.08),
-                _getProductColor(index).withOpacity(0.03),
+                _getProductColor(index).withValues(alpha:0.08),
+                _getProductColor(index).withValues(alpha:0.03),
               ],
             ),
           ),
@@ -218,7 +218,7 @@ class PhoneAuthScreen extends StatelessWidget {
             child: Icon(
               _getProductIcon(index),
               size: cardSize * 0.4,
-              color: _getProductColor(index).withOpacity(0.8),
+              color: _getProductColor(index).withValues(alpha:0.8),
             ),
           ),
         ),
@@ -245,7 +245,7 @@ class PhoneAuthScreen extends StatelessWidget {
                   height: (3 + index).toDouble(),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.primaryPurple.withOpacity(0.2),
+                    color: AppColors.primaryPurple.withValues(alpha:0.2),
                   ),
                 ),
               ),
@@ -314,15 +314,15 @@ class PhoneAuthScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.25),
-            Colors.white.withOpacity(0.15),
+            Colors.white.withValues(alpha:0.25),
+            Colors.white.withValues(alpha:0.15),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha:0.2), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 30,
             offset: const Offset(0, 15),
             spreadRadius: -5,
@@ -428,7 +428,7 @@ class PhoneAuthScreen extends StatelessWidget {
       decoration: InputDecoration(
         counterText: "",
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Colors.white.withValues(alpha:0.8),
         prefixIcon: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
@@ -452,14 +452,14 @@ class PhoneAuthScreen extends StatelessWidget {
                 width: 1,
                 height: 20,
                 margin: const EdgeInsets.only(left: 8),
-                color: AppColors.textLight.withOpacity(0.3),
+                color: AppColors.textLight.withValues(alpha:0.3),
               ),
             ],
           ),
         ),
         hintText: "Enter mobile number",
         hintStyle: TextStyle(
-          color: AppColors.textLight.withOpacity(0.6),
+          color: AppColors.textLight.withValues(alpha:0.6),
           fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
@@ -470,7 +470,7 @@ class PhoneAuthScreen extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: AppColors.lightGreyBackground.withOpacity(0.4),
+            color: AppColors.lightGreyBackground.withValues(alpha:0.4),
             width: 1,
           ),
         ),
@@ -500,8 +500,8 @@ class PhoneAuthScreen extends StatelessWidget {
           gradient: LinearGradient(
             colors: loginController.isOtpLoading.value
                 ? [
-                    AppColors.textLight.withOpacity(0.5),
-                    AppColors.textLight.withOpacity(0.7),
+                    AppColors.textLight.withValues(alpha:0.5),
+                    AppColors.textLight.withValues(alpha:0.7),
                   ]
                 : [AppColors.primaryPurple, AppColors.darkPurple],
           ),
@@ -510,7 +510,7 @@ class PhoneAuthScreen extends StatelessWidget {
               ? []
               : [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withOpacity(0.3),
+                    color: AppColors.primaryPurple.withValues(alpha:0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),

@@ -32,7 +32,7 @@ class CartController extends GetxController {
       }
       return null;
     } catch (e) {
-      print('🛒 CartController: Error getting userId: $e');
+      debugPrint('🛒 CartController: Error getting userId: $e');
       return null;
     }
   }
@@ -40,7 +40,11 @@ class CartController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchAndLoadCartData();
+    // 🚀 Fast Local Hydration (0ms delay)
+    _loadCartDataFromLocalStorage();
+
+    // Silent background sync
+    fetchAndLoadCartData(forceRefresh: false);
 
     ever(_connectivityController.isConnected, (bool isConnected) {
       if (isConnected) {
@@ -74,7 +78,7 @@ class CartController extends GetxController {
   }
 
   void _updateProductVariantQuantities() {
-    print('🛒 CartController: Recalculating product variant quantities...');
+    debugPrint('🛒 CartController: Recalculating product variant quantities...');
     final Map<String, int> newQuantities = {};
     for (var item in (cartData['items'] as List? ?? [])) {
       if (item is Map) {
@@ -89,7 +93,7 @@ class CartController extends GetxController {
       }
     }
     productVariantQuantities.value = newQuantities;
-    print(
+    debugPrint(
       '🛒 CartController: Finished recalculating product variant quantities. Total unique variants: ${productVariantQuantities.length}',
     );
   }
@@ -98,27 +102,36 @@ class CartController extends GetxController {
   String? _extractProductId(dynamic productData) {
     if (productData == null) return null;
     if (productData is String) return productData;
-    if (productData is Map)
+    if (productData is Map) {
       return productData['_id']?.toString() ?? productData['id']?.toString();
+    }
     return null;
   }
 
-  Future<void> fetchAndLoadCartData() async {
-    print('🛒 CartController: Attempting to fetch and load cart data...');
-    isLoading.value = true;
+  Future<void> fetchAndLoadCartData({bool forceRefresh = false}) async {
+    debugPrint('🛒 CartController: Attempting to load cart data (forceRefresh: $forceRefresh)...');
+    
+    // 🚀 Hydrate local cache first if empty
+    if (cartData.isEmpty) {
+      await _loadCartDataFromLocalStorage();
+    }
+
+    // Only show full loading UI if we have no local cart data
+    if (cartData.isEmpty) {
+      isLoading.value = true;
+    }
 
     try {
       if (userId == null) {
-        print(
-          '🛒 CartController: User ID not found, cannot fetch cart from backend. Loading from local storage fallback.',
+        debugPrint(
+          '🛒 CartController: User ID not found, using local storage cart.',
         );
-        await _loadCartDataFromLocalStorage();
         return;
       }
 
       // Updated: fetchCart no longer requires cartId in the URL as it uses the Authorization token
       final apiResponse = await CartService().fetchCart();
-      print('🛒 CartController: Fetched cart from backend: $apiResponse');
+      debugPrint('🛒 CartController: Fetched cart from backend: $apiResponse');
 
       if (apiResponse['success'] == true &&
           apiResponse['data'] is Map) {
@@ -140,28 +153,27 @@ class CartController extends GetxController {
         }
 
         cartData.value = fetchedCart;
-        print('🛒 CartController: Fresh API data stored and then shown.');
-      } else {
-        print(
-          '🛒 CartController: Backend cart fetch failed or returned invalid data. Loading from local storage fallback.',
-        );
+        debugPrint('🛒 CartController: Fresh API data stored and then shown.');
+      } else if (cartData.isEmpty) {
         await _loadCartDataFromLocalStorage();
       }
     } catch (e) {
-      print(
-        '🛒 CartController: Error fetching cart from backend: $e. Loading from local storage fallback.',
+      debugPrint(
+        '🛒 CartController: Error fetching cart from backend: $e.',
       );
-      await _loadCartDataFromLocalStorage();
+      if (cartData.isEmpty) {
+        await _loadCartDataFromLocalStorage();
+      }
     } finally {
       isLoading.value = false;
-      print(
+      debugPrint(
         '🛒 CartController: Current totalCartItemsCount after fetchAndLoadCartData: $totalCartItemsCount',
       );
     }
   }
 
   Future<void> _loadCartDataFromLocalStorage() async {
-    print(
+    debugPrint(
       '🛒 CartController: Loading cart data from local storage (fallback)...',
     );
     try {
@@ -173,23 +185,23 @@ class CartController extends GetxController {
         if (user.containsKey('cart') && user['cart'] is Map) {
           cartData.value = Map<String, dynamic>.from(user['cart']);
           _updateProductVariantQuantities();
-          print(
-            '🛒 CartController: Cart data loaded from local storage: ${cartData.value}',
+          debugPrint(
+            '🛒 CartController: Cart data loaded from local storage: $cartData',
           );
         } else {
           await _resetLocalCartData();
-          print(
+          debugPrint(
             '🛒 CartController: No valid cart data found in stored user object locally, initializing to empty structure.',
           );
         }
       } else {
         await _resetLocalCartData();
-        print(
+        debugPrint(
           '🛒 CartController: No user data in storage, initializing to empty cart.',
         );
       }
     } catch (e) {
-      print(
+      debugPrint(
         '🛒 CartController: Error loading cart data from local storage: $e',
       );
       await _resetLocalCartData();
@@ -197,7 +209,7 @@ class CartController extends GetxController {
   }
 
   Future<void> _handleConnectionRestored() async {
-    print(
+    debugPrint(
       '🛒 CartController: Internet connection restored. Re-fetching cart data...',
     );
     await fetchAndLoadCartData();
@@ -218,7 +230,7 @@ class CartController extends GetxController {
       }
       return [];
     } catch (e) {
-      print('🛒 CartController: Error getting cartItems: $e');
+      debugPrint('🛒 CartController: Error getting cartItems: $e');
       return [];
     }
   }
@@ -235,7 +247,7 @@ class CartController extends GetxController {
         }
       }
     }
-    print(
+    debugPrint(
       '🛒 CartController: Variants in cart for product $productId: $productVariantsInCart',
     );
     return productVariantsInCart;
@@ -258,7 +270,7 @@ class CartController extends GetxController {
         totalQuantity += item['quantity'] as int? ?? 0;
       }
     }
-    print(
+    debugPrint(
       '🛒 CartController: Calculated total quantity for product $productId -> $totalQuantity',
     );
     return totalQuantity;
@@ -282,7 +294,7 @@ class CartController extends GetxController {
             maxDeliveryCharge = itemDeliveryCharge;
           }
         } catch (e) {
-          print(
+          debugPrint(
             '🛒 CartController: Error parsing product for delivery charge: $e',
           );
         }
@@ -308,20 +320,18 @@ class CartController extends GetxController {
             (sp) => sp.variantName == itemVariantName,
           );
 
-          if (sellingPriceForVariant != null &&
-              sellingPriceForVariant.price != null) {
-            final itemPrice = sellingPriceForVariant.price!.toDouble();
+          if (sellingPriceForVariant != null) {
+            final itemPrice = sellingPriceForVariant.price.toDouble();
             total += itemPrice * quantity;
           } else {
             // Fallback if variant price not found
-            if (product.sellingPrice.isNotEmpty &&
-                product.sellingPrice.last.price != null) {
+            if (product.sellingPrice.isNotEmpty) {
               final itemPrice = product.sellingPrice.last.price.toDouble();
               total += itemPrice * quantity;
             }
           }
         } catch (e) {
-          print('🛒 CartController: Error calculating price for item: $e');
+          debugPrint('🛒 CartController: Error calculating price for item: $e');
         }
       }
     }
@@ -334,7 +344,7 @@ class CartController extends GetxController {
     ProductModel? product,
   }) async {
     if (product != null) {
-      print('🛒 CartController: Product details: ${product.toJson()}');
+      debugPrint('🛒 CartController: Product details: ${product.toJson()}');
     }
     final cartId = box.read('cartId');
     if (cartId == null) {
@@ -349,7 +359,7 @@ class CartController extends GetxController {
       );
       return false;
     }
-    print(
+    debugPrint(
       '🛒 CartController: Adding to cart: productId=$productId, variantName=$variantName, cartId=$cartId',
     );
 
@@ -369,11 +379,11 @@ class CartController extends GetxController {
           if (product != null) {
             Get.find<AnalyticsService>().logAddToCart(
               itemId: productId,
-              itemName: product.fullName ?? 'Product',
+              itemName: product.fullName,
               itemCategory: product.category?.name ?? 'General',
               quantity: 1,
               price: product.sellingPrice.isNotEmpty
-                  ? (product.sellingPrice.last.price?.toDouble() ?? 0.0)
+                  ? (product.sellingPrice.last.price.toDouble() )
                   : 0.0,
             );
           }
@@ -384,7 +394,7 @@ class CartController extends GetxController {
       } else {
         final errorMessage =
             response['message'] ?? 'Failed to add product to cart.';
-        print('🛒 CartController: Add to cart failed: $errorMessage');
+        debugPrint('🛒 CartController: Add to cart failed: $errorMessage');
         return false;
       }
     } catch (e) {
@@ -395,7 +405,7 @@ class CartController extends GetxController {
       } else {
         errorMessage = e.toString();
       }
-      print("🛒 CartController: Add to cart error: $errorMessage");
+      debugPrint("🛒 CartController: Add to cart error: $errorMessage");
       return false;
     } finally {
       processingProductId.value = '';
@@ -410,7 +420,7 @@ class CartController extends GetxController {
     if (cartId == null) {
       return;
     }
-    print(
+    debugPrint(
       '🛒 CartController: Removing from cart: productId=$productId, variantName=$variantName, cartId=$cartId',
     );
 
@@ -426,7 +436,7 @@ class CartController extends GetxController {
         await _updateStorageAndCartData(response);
       }
     } catch (e) {
-      print("🛒 CartController: Remove from cart error: $e");
+      debugPrint("🛒 CartController: Remove from cart error: $e");
     } finally {
       processingProductId.value = '';
     }
@@ -435,36 +445,36 @@ class CartController extends GetxController {
   Future<void> _updateStorageAndCartData(
     Map<String, dynamic> apiResponse,
   ) async {
-    print('🛒 CartController: Starting _updateStorageAndCartData...');
-    print('🛒 CartController: Full API Response for cart update: $apiResponse');
+    debugPrint('🛒 CartController: Starting _updateStorageAndCartData...');
+    debugPrint('🛒 CartController: Full API Response for cart update: $apiResponse');
 
     final updatedUserRaw = apiResponse['data']?['user'];
-    print(
+    debugPrint(
       '🛒 CartController: Extracted updatedUser from response: $updatedUserRaw',
     );
 
     if (updatedUserRaw != null && updatedUserRaw is Map) {
       final updatedUser = Map<String, dynamic>.from(updatedUserRaw);
       await box.write('user', updatedUser);
-      print(
+      debugPrint(
         '🛒 CartController: Stored updated user object directly to "user" key in GetStorage.',
       );
 
       final updatedCart = updatedUser['cart'];
       if (updatedCart != null && updatedCart is Map) {
         cartData.value = Map<String, dynamic>.from(updatedCart);
-        print(
-          '🛒 CartController: Updated cartData.value observable with latest cart: ${cartData.value}',
+        debugPrint(
+          '🛒 CartController: Updated cartData observable with latest cart: $cartData',
         );
       } else {
         await _resetLocalCartData();
-        print(
+        debugPrint(
           '🛒 CartController: Warning: Updated user object from API did not contain a valid "cart". Local cartData reset.',
         );
       }
     } else {
       await _resetLocalCartData();
-      print(
+      debugPrint(
         '🛒 CartController: Warning: No updated user data (apiResponse["data"]["user"]) in cart response. Local cartData reset.',
       );
     }
@@ -476,16 +486,16 @@ class CartController extends GetxController {
     final userRaw = box.read('user');
     if (userRaw != null && userRaw is Map) {
       final user = Map<String, dynamic>.from(userRaw);
-      user['cart'] = cartData.value;
+      user['cart'] = Map<String, dynamic>.from(cartData);
       await box.write('user', user);
     }
   }
 
   Future<void> clearCartData() async {
-    print('🛒 CartController: Clearing cart data...');
-    final cartId = cartData.value['_id'];
+    debugPrint('🛒 CartController: Clearing cart data...');
+    final cartId = cartData['_id'];
     if (cartId == null) {
-      print('🛒 CartController: No cart ID found, just clearing local data.');
+      debugPrint('🛒 CartController: No cart ID found, just clearing local data.');
       await _resetLocalCartData();
       return;
     }
@@ -493,17 +503,17 @@ class CartController extends GetxController {
     try {
       final response = await CartService().clearCart(cartId: cartId);
       if (response['success'] == true) {
-        print('🛒 CartController: Cart cleared successfully on the backend.');
+        debugPrint('🛒 CartController: Cart cleared successfully on the backend.');
       } else {
-        print(
+        debugPrint(
           '🛒 CartController: Failed to clear cart on the backend: ${response['message']}',
         );
       }
     } catch (e) {
-      print('🛒 CartController: Error clearing cart on the backend: $e');
+      debugPrint('🛒 CartController: Error clearing cart on the backend: $e');
     } finally {
       await _resetLocalCartData();
-      print('🛒 CartController: Local cartData observable cleared.');
+      debugPrint('🛒 CartController: Local cartData observable cleared.');
     }
   }
 

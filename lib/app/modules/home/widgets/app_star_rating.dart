@@ -8,11 +8,11 @@ class AppStarRating extends StatelessWidget {
   final double starSize; // Added for flexibility
 
   const AppStarRating({
-    Key? key,
+    super.key,
     required this.rating,
     required this.ratingCount,
     this.starSize = 14, // Default size
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class AppStarRating extends StatelessWidget {
         stars.add(
           Icon(
             Icons.star_border_rounded,
-            color: AppColors.ratingGold.withOpacity(0.5),
+            color: AppColors.ratingGold.withValues(alpha: 0.5),
             size: starSize,
           ),
         );

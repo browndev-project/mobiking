@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:mobiking/app/controllers/login_controller.dart';
@@ -26,11 +27,11 @@ void callbackDispatcher() {
 
       // Initialize GetX
       Get.put(LoginController());
-      final loginController = Get.find<LoginController>();
+Get.find<LoginController>();
       // await loginController.manualRefreshToken(); // Removed as refresh token logic is no longer used
       return Future.value(true);
     } catch (e) {
-      print('Background task failed: $e');
+      debugPrint('Background task failed: $e');
       return Future.value(false);
     }
   });

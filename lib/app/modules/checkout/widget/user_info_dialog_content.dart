@@ -209,7 +209,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primaryPurple.withOpacity(0.1),
+            color: AppColors.primaryPurple.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.primaryPurple, size: 20),
@@ -235,7 +235,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
         border: Border.all(color: AppColors.lightGreyBackground, width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textDark.withOpacity(0.05),
+            color: AppColors.textDark.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

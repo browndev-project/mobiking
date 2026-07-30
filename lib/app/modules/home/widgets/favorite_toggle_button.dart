@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:like_button/like_button.dart';
 
 import '../../../controllers/wishlist_controller.dart';
-import '../../../services/Sound_Service.dart';
+import '../../../services/sound_service.dart';
 import '../../../themes/app_theme.dart';
 
 class FavoriteToggleButton extends StatelessWidget {
@@ -14,13 +14,13 @@ class FavoriteToggleButton extends StatelessWidget {
   final Function(bool isFavorite)? onChanged;
 
   const FavoriteToggleButton({
-    Key? key,
+    super.key,
     required this.productId,
     this.iconSize = 18,
     this.padding = 4,
     this.containerOpacity = 0.8,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class FavoriteToggleButton extends StatelessWidget {
           return Container(
             padding: EdgeInsets.all(padding),
             decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(containerOpacity),
+              color: AppColors.white.withValues(alpha: containerOpacity),
               shape: BoxShape.circle,
             ),
             child: Icon(

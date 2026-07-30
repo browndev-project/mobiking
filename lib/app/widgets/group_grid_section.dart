@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:mobiking/app/controllers/sub_category_controller.dart';
@@ -8,9 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/group_model.dart';
 import '../data/product_model.dart';
 import '../modules/Product_page/product_page.dart';
-import '../modules/home/widgets/GroupProductsScreen.dart';
+import '../modules/home/widgets/group_products_screen.dart';
 import 'package:mobiking/app/widgets/group_categories_section.dart';
-import '../modules/home/widgets/AllProductGridCard.dart';
+import '../modules/home/widgets/all_product_grid_card.dart';
 
 class GroupWithProductsSection extends StatefulWidget {
   final List<GroupModel> groups;
@@ -31,7 +30,7 @@ class _GroupWithProductsSectionState extends State<GroupWithProductsSection>
   bool get wantKeepAlive => true; // 🚀 Keep widget alive to prevent rebuilds
 
   static const double horizontalContentPadding = 16.0;
-  static const double gridCardHeight = 240.0;
+
 
   // 🚀 Cache for expensive computations
   final Map<String, List<ProductModel>> _inStockProductsCache = {};
@@ -88,8 +87,7 @@ class _GroupWithProductsSectionState extends State<GroupWithProductsSection>
 
                     // 🚀 Banner with RepaintBoundary
                     if (group.isBannerVisible &&
-                        group.banner != null &&
-                        group.banner!.isNotEmpty)
+                        group.banner.isNotEmpty)
                       GestureDetector(
                         onTap: () async {
                           if (group.isBannerLinkActive &&
@@ -98,7 +96,7 @@ class _GroupWithProductsSectionState extends State<GroupWithProductsSection>
                             String urlString = group.bannerLink!;
                             if (!urlString.startsWith('http://') &&
                                 !urlString.startsWith('https://')) {
-                              urlString = 'https://' + urlString;
+                              urlString = 'https://$urlString';
                             }
                             final Uri url = Uri.parse(urlString);
                             if (!await launchUrl(url)) {
@@ -114,7 +112,7 @@ class _GroupWithProductsSectionState extends State<GroupWithProductsSection>
                               width: double.infinity,
                               color: AppColors.neutralBackground,
                               child: CachedNetworkImage(
-                                imageUrl: group.banner!,
+                                imageUrl: group.banner,
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   color: AppColors.neutralBackground,
@@ -134,8 +132,7 @@ class _GroupWithProductsSectionState extends State<GroupWithProductsSection>
                       ),
 
                     if (group.isBannerVisible &&
-                        group.banner != null &&
-                        group.banner!.isNotEmpty)
+                        group.banner.isNotEmpty)
                       const SizedBox(height: 10),
 
                     if (group.parentCategories.isNotEmpty)

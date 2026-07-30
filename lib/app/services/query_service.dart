@@ -1,9 +1,10 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
-import '../data/QueryModel.dart';
-import '../data/order_model.dart';
+import '../data/query_model.dart';
+
 
 class QueryService {
   final Dio _dio;
@@ -19,7 +20,7 @@ class QueryService {
         responseHeader: true,
         responseBody: true,
         error: true,
-        logPrint: (obj) => print('DIO LOG: $obj'),
+        logPrint: (obj) => debugPrint('DIO LOG: $obj'),
       ),
     );
   }

@@ -5,8 +5,7 @@ import '../data/product_model.dart';
 import '../services/wishlist_service.dart';
 import 'package:mobiking/app/controllers/connectivity_controller.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
-import 'package:mobiking/app/modules/profile/wishlist/Wish_list_screen.dart';
-import 'package:collection/collection.dart';
+import 'package:mobiking/app/modules/profile/wishlist/wish_list_screen.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mobiking/app/modules/login/login_screen.dart';
 
@@ -40,7 +39,7 @@ class WishlistController extends GetxController {
   }
 
   Future<void> _handleConnectionRestored() async {
-    print(
+    debugPrint(
       'WishlistController: Internet connection restored. Re-loading wishlist from local storage.',
     );
     loadWishlistFromLocal();
@@ -51,7 +50,7 @@ class WishlistController extends GetxController {
       final fetchedWishlist = await _service.fetchWishlist();
       wishlist.assignAll(fetchedWishlist);
     } catch (e) {
-      print('WishlistController: Failed to fetch wishlist: $e');
+      debugPrint('WishlistController: Failed to fetch wishlist: $e');
     }
   }
 
@@ -66,14 +65,14 @@ class WishlistController extends GetxController {
         wishlist.value = wishlistData
             .map((e) => ProductModel.fromJson(e as Map<String, dynamic>))
             .toList();
-        print('Wishlist loaded locally with ${wishlist.length} items.');
+        debugPrint('Wishlist loaded locally with ${wishlist.length} items.');
       } else {
         wishlist.clear();
-        print('No "wishlist" field found in user data or it is null locally.');
+        debugPrint('No "wishlist" field found in user data or it is null locally.');
       }
     } else {
       wishlist.clear();
-      print('No user data found locally for wishlist.');
+      debugPrint('No user data found locally for wishlist.');
     }
   }
 
@@ -154,7 +153,7 @@ class WishlistController extends GetxController {
           'Removed',
           '$itemName removed from wishlist',
           icon: const Icon(Icons.delete_outline, color: Colors.white),
-          backgroundColor: AppColors.textDark.withOpacity(0.9),
+          backgroundColor: AppColors.textDark.withValues(alpha: 0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(12),

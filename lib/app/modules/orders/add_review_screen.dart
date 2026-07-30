@@ -8,7 +8,7 @@ import 'package:mobiking/app/themes/app_theme.dart'; // Assuming you have a cust
 class AddReviewScreen extends StatefulWidget {
   final OrderModel order;
 
-  const AddReviewScreen({Key? key, required this.order}) : super(key: key);
+  const AddReviewScreen({super.key, required this.order});
 
   @override
   State<AddReviewScreen> createState() => _AddReviewScreenState();

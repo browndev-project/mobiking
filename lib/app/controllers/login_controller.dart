@@ -5,14 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart' as dio;
-import 'package:mobiking/app/modules/bottombar/Bottom_bar.dart';
+import 'package:mobiking/app/modules/bottombar/bottom_bar.dart';
 import '../modules/login/login_screen.dart';
 import '../services/login_service.dart';
-import 'package:mobiking/app/controllers/connectivity_controller.dart';
 
-import 'package:mobiking/app/controllers/wishlist_controller.dart';
 
-import 'package:mobiking/app/data/wishlist_model.dart';
 
 import 'cart_controller.dart';
 
@@ -37,10 +34,7 @@ class LoginController extends GetxController {
 
   Rx<Map<String, dynamic>?> currentUser = Rx<Map<String, dynamic>?>(null);
 
-  final ConnectivityController _connectivityController =
-      Get.find<ConnectivityController>();
   final CartController _cartController = Get.find<CartController>();
-  final WishlistController _wishlistController = Get.find<WishlistController>();
 
   @override
   void onInit() {
@@ -61,7 +55,7 @@ class LoginController extends GetxController {
 
     isOtpLoading.value = true;
     try {
-      print('LoginController: Sending OTP to $phoneNumber');
+      debugPrint('LoginController: Sending OTP to $phoneNumber');
 
       final response = await loginService.sendOtp(phoneNumber);
 
@@ -74,7 +68,7 @@ class LoginController extends GetxController {
         if (responseData != null && responseData['success'] == true) {
           currentOtpPhoneNumber.value =
               phoneNumber; // Store phone number for resend
-          print('LoginController: OTP sent successfully');
+          debugPrint('LoginController: OTP sent successfully');
           _startOtpResendTimer(); // Start the countdown timer
           return true;
         } else {
@@ -92,7 +86,7 @@ class LoginController extends GetxController {
         );
       }
     } catch (e) {
-      print('LoginController: Error sending OTP: $e');
+      debugPrint('LoginController: Error sending OTP: $e');
       return false;
     } finally {
       isOtpLoading.value = false;
@@ -109,7 +103,7 @@ class LoginController extends GetxController {
 
     isOtpLoading.value = true;
     try {
-      print('LoginController: Verifying OTP for $phoneNumber');
+      debugPrint('LoginController: Verifying OTP for $phoneNumber');
 
       final response = await loginService.verifyOtp(phoneNumber, otpCode);
 
@@ -124,8 +118,8 @@ class LoginController extends GetxController {
         await box.write('user', user);
         await box.write('cartId', cartId);
 
-        print('LoginController: User object before setting currentUser: $user');
-        print(
+        debugPrint('LoginController: User object before setting currentUser: $user');
+        debugPrint(
           'LoginController: User _id before setting currentUser: ${user?['_id']}',
         );
         currentUser.value = user;
@@ -136,9 +130,9 @@ class LoginController extends GetxController {
         // Clear OTP related data
         _clearOtpData();
 
-        print('LoginController: OTP verified and user logged in successfully');
-        print('User data: ${box.read('user')}');
-        print('Cart ID: ${box.read('cartId')}');
+        debugPrint('LoginController: OTP verified and user logged in successfully');
+        debugPrint('User data: ${box.read('user')}');
+        debugPrint('Cart ID: ${box.read('cartId')}');
 
         // Navigate to main app
         Get.offAll(() => MainContainerScreen());
@@ -147,7 +141,7 @@ class LoginController extends GetxController {
         throw Exception(response.data?['message'] ?? 'OTP verification failed');
       }
     } catch (e) {
-      print('LoginController: Error verifying OTP: $e');
+      debugPrint('LoginController: Error verifying OTP: $e');
       return false;
     } finally {
       isOtpLoading.value = false;
@@ -160,21 +154,21 @@ class LoginController extends GetxController {
 
     isResendingOtp.value = true;
     try {
-      print('LoginController: Resending OTP to ${currentOtpPhoneNumber.value}');
+      debugPrint('LoginController: Resending OTP to ${currentOtpPhoneNumber.value}');
 
       final response = await loginService.sendOtp(
         currentOtpPhoneNumber.value,
       ); // Re-use sendOtp
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        print('LoginController: OTP resent successfully');
+        debugPrint('LoginController: OTP resent successfully');
         _startOtpResendTimer(); // Restart the countdown timer
         return true;
       } else {
         throw Exception(response.data?['message'] ?? 'Failed to resend OTP');
       }
     } catch (e) {
-      print('LoginController: Error resending OTP: $e');
+      debugPrint('LoginController: Error resending OTP: $e');
       return false;
     } finally {
       isResendingOtp.value = false;
@@ -219,7 +213,7 @@ class LoginController extends GetxController {
 
     isDeletingAccount.value = true;
     try {
-      print('LoginController: Attempting to delete user account...');
+      debugPrint('LoginController: Attempting to delete user account...');
 
       // Check if user is logged in
       if (currentUser.value == null || box.read('accessToken') == null) {
@@ -245,7 +239,7 @@ class LoginController extends GetxController {
           );
           return false;
         }
-        print(
+        debugPrint(
           'LoginController: Confirmation validated. User typed: $confirmationText',
         );
       }
@@ -265,14 +259,14 @@ class LoginController extends GetxController {
         colorText: Colors.white,
       );
 
-      print('LoginController: Account deleted successfully');
+      debugPrint('LoginController: Account deleted successfully');
 
       // Navigate to login screen and clear all navigation stack
       Get.offAll(() => PhoneAuthScreen());
 
       return true;
     } catch (e) {
-      print('LoginController: Error deleting account: $e');
+      debugPrint('LoginController: Error deleting account: $e');
 
       // Handle different types of errors based on LoginService exceptions
       String errorMessage = 'Failed to delete account';
@@ -320,7 +314,7 @@ class LoginController extends GetxController {
     final hasUser = currentUser.value != null;
     final hasAccessToken = box.read('accessToken') != null;
 
-    print(
+    debugPrint(
       'LoginController: canDeleteAccount - User: $hasUser, AccessToken: $hasAccessToken',
     );
 
@@ -338,7 +332,7 @@ class LoginController extends GetxController {
       // Optional: Check service health before allowing deletion
       final isHealthy = await loginService.checkServiceHealth();
       if (!isHealthy) {
-        print(
+        debugPrint(
           'LoginController: Service is not healthy, account deletion not available',
         );
         return false;
@@ -346,7 +340,7 @@ class LoginController extends GetxController {
 
       return true;
     } catch (e) {
-      print('LoginController: Error validating account deletion: $e');
+      debugPrint('LoginController: Error validating account deletion: $e');
       return false;
     }
   }
@@ -354,7 +348,7 @@ class LoginController extends GetxController {
   // Clear all user data from storage and controllers
   Future<void> _clearAllUserData() async {
     try {
-      print('LoginController: Clearing all user data...');
+      debugPrint('LoginController: Clearing all user data...');
 
       // Cancel timers
       _otpResendTimer?.cancel();
@@ -376,9 +370,9 @@ class LoginController extends GetxController {
       // Clear cart and wishlist data
       _cartController.clearCartData();
 
-      print('LoginController: All user data cleared successfully');
+      debugPrint('LoginController: All user data cleared successfully');
     } catch (e) {
-      print('LoginController: Error clearing user data: $e');
+      debugPrint('LoginController: Error clearing user data: $e');
     }
   }
 
@@ -391,8 +385,8 @@ class LoginController extends GetxController {
     }
   }
 
-  void _clearLoginData() {
-    print('LoginController: Performing standard login data clear...');
+  void clearLoginData() {
+    debugPrint('LoginController: Performing standard login data clear...');
     _otpResendTimer?.cancel();
     _clearOtpData();
     loginService.clearAllTokenData();
@@ -402,7 +396,7 @@ class LoginController extends GetxController {
     box.remove('cartId');
     
     currentUser.value = null;
-    print('LoginController: Standard login data cleared.');
+    debugPrint('LoginController: Standard login data cleared.');
   }
 
   dynamic getUserData(String key) {
@@ -439,7 +433,7 @@ class LoginController extends GetxController {
         // Handle logout error
       }
     } catch (e) {
-      print('Logout Error: $e');
+      debugPrint('Logout Error: $e');
     } finally {
       isLoading.value = false;
     }

@@ -12,8 +12,7 @@ import '../../themes/app_theme.dart';
 class ShippingDetailsScreen extends StatelessWidget {
   final OrderModel order;
 
-  const ShippingDetailsScreen({Key? key, required this.order})
-    : super(key: key);
+  const ShippingDetailsScreen({super.key, required this.order});
 
   // ✅ REFACTORED: Moved status determination logic into a helper function for clarity.
   int _getCurrentMilestoneIndex(List<Scan> scans) {
@@ -52,13 +51,12 @@ class ShippingDetailsScreen extends StatelessWidget {
 
     // --- Data Preparation ---
     String currentActivity = 'Your order has been placed.';
-    String currentLocation = 'N/A';
     DateTime? lastScanDateTime;
 
     if (scans.isNotEmpty) {
       final Scan lastScan = scans.last;
       currentActivity = lastScan.activity;
-      currentLocation = lastScan.location;
+
       try {
         lastScanDateTime = DateTime.parse(lastScan.date);
       } catch (e) {
@@ -240,7 +238,7 @@ class ShippingDetailsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.textDark.withOpacity(0.05),
+                    color: AppColors.textDark.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -307,7 +305,7 @@ class ShippingDetailsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.textDark.withOpacity(0.05),
+                    color: AppColors.textDark.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

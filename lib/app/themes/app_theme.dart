@@ -208,25 +208,25 @@ class AppTheme {
         primary: AppColors.primaryPurple,
         secondary: AppColors.accentNeon,
         error: AppColors.danger,
-        background: AppColors.neutralBackground,
+        surface: AppColors.neutralBackground,
       ),
 
       checkboxTheme: CheckboxThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primaryPurple;
           }
           return AppColors.textLight;
         }),
-        checkColor: MaterialStateProperty.all(AppColors.white),
+        checkColor: WidgetStateProperty.all(AppColors.white),
         splashRadius: 16,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         side: BorderSide(color: AppColors.textLight, width: 2),
       ),
 
       radioTheme: RadioThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primaryPurple;
           }
           return AppColors.textLight;
@@ -235,26 +235,26 @@ class AppTheme {
       ),
 
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.white;
           }
           return AppColors.white;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return AppColors.primaryPurple.withOpacity(0.8);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primaryPurple.withValues(alpha: 0.8);
           }
-          return AppColors.textLight.withOpacity(0.5);
+          return AppColors.textLight.withValues(alpha: 0.5);
         }),
         splashRadius: 16,
       ),
 
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.primaryPurple,
-        inactiveTrackColor: AppColors.lightPurple.withOpacity(0.5),
+        inactiveTrackColor: AppColors.lightPurple.withValues(alpha: 0.5),
         thumbColor: AppColors.primaryPurple,
-        overlayColor: AppColors.primaryPurple.withOpacity(0.2),
+        overlayColor: AppColors.primaryPurple.withValues(alpha: 0.2),
         valueIndicatorColor: AppColors.primaryPurple,
         valueIndicatorTextStyle: GoogleFonts.inter(
           // Using Inter for slider value

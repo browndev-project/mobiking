@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:get/get.dart';
-import 'package:flutter/material.dart';
+
 import '../data/category_model.dart';
 import '../data/sub_category_model.dart';
-import 'package:dio/dio.dart' as dio;
+
 import '../data/product_model.dart';
 
 class CategoryService {
@@ -38,9 +38,9 @@ class CategoryService {
       _categoryDetailsBox = await Hive.openBox<Map>(categoryDetailsBoxName);
       _metadataBox = await Hive.openBox<String>(metadataBoxName);
       _isHiveInitialized = true;
-      print('[CategoryService] Hive boxes initialized successfully');
+      debugPrint('[CategoryService] Hive boxes initialized successfully');
     } catch (e) {
-      print('[CategoryService] Error initializing Hive boxes: $e');
+      debugPrint('[CategoryService] Error initializing Hive boxes: $e');
       _isHiveInitialized = false;
       rethrow;
     }
@@ -56,7 +56,7 @@ class CategoryService {
     final now = DateTime.now();
     final isValid = now.difference(lastFetch) < cacheValidDuration;
 
-    print(
+    debugPrint(
       '[CategoryService] Cache valid for $key: $isValid (Last fetch: $lastFetch)',
     );
     return isValid;
@@ -67,7 +67,7 @@ class CategoryService {
     if (!_isHiveInitialized) return [];
     // ✅ Added generic type
     final cached = _categoriesBox.values.toList();
-    print('[CategoryService] Retrieved ${cached.length} categories from cache');
+    debugPrint('[CategoryService] Retrieved ${cached.length} categories from cache');
     return cached;
   }
 
@@ -90,9 +90,9 @@ class CategoryService {
         DateTime.now().toIso8601String(),
       );
 
-      print('[CategoryService] Cached ${categories.length} categories');
+      debugPrint('[CategoryService] Cached ${categories.length} categories');
     } catch (e) {
-      print('[CategoryService] Error caching categories: $e');
+      debugPrint('[CategoryService] Error caching categories: $e');
     }
   }
 
@@ -101,7 +101,7 @@ class CategoryService {
     if (!_isHiveInitialized) return null;
     final cached = _categoryDetailsBox.get(slug);
     if (cached != null) {
-      print(
+      debugPrint(
         '[CategoryService] Retrieved cached category details for slug: $slug',
       );
       // Convert the cached Map back to the expected format
@@ -146,9 +146,9 @@ class CategoryService {
         DateTime.now().toIso8601String(),
       );
 
-      print('[CategoryService] Cached category details for slug: $slug');
+      debugPrint('[CategoryService] Cached category details for slug: $slug');
     } catch (e) {
-      print('[CategoryService] Error caching category details for $slug: $e');
+      debugPrint('[CategoryService] Error caching category details for $slug: $e');
     }
   }
 
@@ -162,7 +162,7 @@ class CategoryService {
     if (!forceRefresh && _isCacheValid('$lastFetchDetailsPrefix$slug')) {
       final cached = _getCachedCategoryDetails(slug);
       if (cached != null) {
-        print(
+        debugPrint(
           '[CategoryService] Returning cached category details for slug: $slug',
         );
         return cached;
@@ -170,7 +170,7 @@ class CategoryService {
     }
 
     // Fetch from API
-    print(
+    debugPrint(
       '[CategoryService] Fetching fresh category details from API for slug: $slug',
     );
 
@@ -184,7 +184,7 @@ class CategoryService {
         final data = raw['data'];
 
         if (data == null) {
-          print('CategoryService: Category data is null for slug: $slug');
+          debugPrint('CategoryService: Category data is null for slug: $slug');
           final emptyResult = {
             'category': null,
             'subCategories': <SubCategory>[],
@@ -207,7 +207,7 @@ class CategoryService {
         // Cache the fresh data
         await _cacheCategoryDetails(slug, result);
 
-        print(
+        debugPrint(
           'CategoryService: Successfully fetched category details for slug: $slug',
         );
 
@@ -216,7 +216,7 @@ class CategoryService {
 
         return result;
       } else {
-        print(
+        debugPrint(
           'CategoryService: Failed to load category details for slug: $slug. Status: ${response.statusCode}',
         );
 
@@ -229,7 +229,7 @@ class CategoryService {
         return {'category': null, 'subCategories': <SubCategory>[]};
       }
     } catch (e) {
-      print('CategoryService: Exception in getCategoryDetails: $e');
+      debugPrint('CategoryService: Exception in getCategoryDetails: $e');
 
       // Try to return cached data as fallback
       final cached = _getCachedCategoryDetails(slug);
@@ -248,43 +248,43 @@ class CategoryService {
     if (!forceRefresh && _isCacheValid(lastFetchCategoriesKey)) {
       final cached = _getCachedCategories();
       if (cached.isNotEmpty) {
-        print('[CategoryService] Returning ${cached.length} cached categories');
+        debugPrint('[CategoryService] Returning ${cached.length} cached categories');
         return cached;
       }
     }
 
     // Fetch from API
-    print('[CategoryService] Fetching fresh categories from API...');
+    debugPrint('[CategoryService] Fetching fresh categories from API...');
 
     try {
       final url = Uri.parse('$baseUrl/categories');
       final response = await _client.get(url);
 
-      print('CategoryService: Status code: ${response.statusCode}');
+      debugPrint('CategoryService: Status code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> decoded = json.decode(response.body);
-        print('CategoryService: Successfully decoded JSON response');
+        debugPrint('CategoryService: Successfully decoded JSON response');
 
         final dynamic dataField = decoded['data'];
 
         if (dataField == null) {
-          print('CategoryService: Data field is null in response');
+          debugPrint('CategoryService: Data field is null in response');
           return <CategoryModel>[];
         }
 
         if (dataField is! List) {
-          print(
+          debugPrint(
             'CategoryService: Data field is not a list: ${dataField.runtimeType}',
           );
           return <CategoryModel>[];
         }
 
         final List<dynamic> jsonList = dataField;
-        print('CategoryService: Data list length: ${jsonList.length}');
+        debugPrint('CategoryService: Data list length: ${jsonList.length}');
 
         if (jsonList.isEmpty) {
-          print('CategoryService: Empty categories list received from API');
+          debugPrint('CategoryService: Empty categories list received from API');
           return <CategoryModel>[];
         }
 
@@ -297,12 +297,12 @@ class CategoryService {
               final category = CategoryModel.fromJson(categoryJson);
               categories.add(category);
             } else {
-              print(
+              debugPrint(
                 'CategoryService: Invalid category data at index $i: $categoryJson',
               );
             }
           } catch (e) {
-            print('CategoryService: Error parsing category at index $i: $e');
+            debugPrint('CategoryService: Error parsing category at index $i: $e');
             // Continue with other categories instead of failing completely
           }
         }
@@ -312,7 +312,7 @@ class CategoryService {
         // Sort categories alphabetically by name
         activeCategories.sort((a, b) => a.name.compareTo(b.name));
 
-        print(
+        debugPrint(
           'CategoryService: Successfully parsed ${activeCategories.length} categories',
         );
 
@@ -324,7 +324,7 @@ class CategoryService {
 
         return activeCategories;
       } else {
-        print(
+        debugPrint(
           'CategoryService: HTTP error ${response.statusCode}: ${response.reasonPhrase}',
         );
 
@@ -337,7 +337,7 @@ class CategoryService {
         return <CategoryModel>[];
       }
     } catch (e) {
-      print('CategoryService: Exception in getCategories: $e');
+      debugPrint('CategoryService: Exception in getCategories: $e');
 
       // Try to return cached data as fallback
       final cached = _getCachedCategories();
@@ -355,7 +355,7 @@ class CategoryService {
     if (!_isHiveInitialized) return;
     await _categoriesBox.clear();
     await _metadataBox.delete(lastFetchCategoriesKey);
-    print('[CategoryService] Categories cache cleared');
+    debugPrint('[CategoryService] Categories cache cleared');
   }
 
   // Method to manually clear category details cache
@@ -366,7 +366,7 @@ class CategoryService {
       // Clear specific category details
       await _categoryDetailsBox.delete(slug);
       await _metadataBox.delete('$lastFetchDetailsPrefix$slug');
-      print('[CategoryService] Category details cache cleared for slug: $slug');
+      debugPrint('[CategoryService] Category details cache cleared for slug: $slug');
     } else {
       // Clear all category details
       await _categoryDetailsBox.clear();
@@ -377,7 +377,7 @@ class CategoryService {
       for (final key in keys) {
         await _metadataBox.delete(key);
       }
-      print('[CategoryService] All category details cache cleared');
+      debugPrint('[CategoryService] All category details cache cleared');
     }
   }
 
@@ -385,7 +385,7 @@ class CategoryService {
   Future<void> clearAllCache() async {
     await clearCategoriesCache();
     await clearCategoryDetailsCache();
-    print('[CategoryService] All cache cleared');
+    debugPrint('[CategoryService] All cache cleared');
   }
 
   // Method to get cache info - SAFE VERSION
@@ -416,7 +416,7 @@ class CategoryService {
         'isCategoriesCacheValid': isCategoriesCacheValid,
       };
     } catch (e) {
-      print('[CategoryService] Error getting cache info: $e');
+      debugPrint('[CategoryService] Error getting cache info: $e');
       return {
         'cachedCategoriesCount': 0,
         'cachedDetailsCount': 0,
@@ -448,7 +448,7 @@ class CategoryService {
         final data = raw['data'];
 
         if (data == null) {
-          print('CategoryService: Product data is null for slug: $slug');
+          debugPrint('CategoryService: Product data is null for slug: $slug');
           return <ProductModel>[];
         }
 
@@ -461,13 +461,13 @@ class CategoryService {
 
         return products;
       } else {
-        print(
+        debugPrint(
           'CategoryService: Failed to load products for slug: $slug. Status: ${response.statusCode}',
         );
         return <ProductModel>[];
       }
     } catch (e) {
-      print('CategoryService: Exception in getProductsBySubCategorySlug: $e');
+      debugPrint('CategoryService: Exception in getProductsBySubCategorySlug: $e');
       return <ProductModel>[];
     }
   }

@@ -8,11 +8,10 @@ import '../../controllers/query_getx_controller.dart';
 import '../../data/order_model.dart';
 import '../../themes/app_theme.dart';
 
-import '../home/home_screen.dart' hide SizedBox;
-import '../profile/query/Query_Detail_Screen.dart';
+import '../profile/query/query_detail_screen.dart';
 import 'package:mobiking/app/modules/orders/add_review_screen.dart';
 import 'shipping_details_screen.dart';
-import 'package:mobiking/app/modules/profile/query/Raise_query.dart';
+import 'package:mobiking/app/modules/profile/query/raise_query.dart';
 import 'package:mobiking/app/modules/login/login_screen.dart'; // ✅ Added for redirection
 import 'package:get_storage/get_storage.dart';
 
@@ -135,7 +134,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 1,
                 blurRadius: 10,
                 offset: const Offset(0, 2),
@@ -186,7 +185,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha:0.1),
               spreadRadius: 1,
               blurRadius: 10,
               offset: const Offset(0, 2),
@@ -199,7 +198,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.danger.withOpacity(0.1),
+                color: AppColors.danger.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
@@ -235,7 +234,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   color: AppColors.neutralBackground,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.danger.withOpacity(0.2),
+                    color: AppColors.danger.withValues(alpha:0.2),
                     width: 1,
                   ),
                 ),
@@ -264,7 +263,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textMedium,
                       side: BorderSide(
-                        color: AppColors.textMedium.withOpacity(0.3),
+                        color: AppColors.textMedium.withValues(alpha:0.3),
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -322,7 +321,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha:0.1),
               spreadRadius: 1,
               blurRadius: 10,
               offset: const Offset(0, 2),
@@ -335,13 +334,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
+                color: AppColors.primaryPurple.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
                 Icons.shopping_bag_outlined,
                 size: 64,
-                color: AppColors.primaryPurple.withOpacity(0.7),
+                color: AppColors.primaryPurple.withValues(alpha:0.7),
               ),
             ),
             const SizedBox(height: 24),
@@ -421,7 +420,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            color: AppColors.accentOrange.withOpacity(0.1),
+            color: AppColors.accentOrange.withValues(alpha:0.1),
             child: Row(
               children: [
                 Icon(
@@ -459,10 +458,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         Expanded(
           child: NotificationListener<ScrollNotification>(
             onNotification: (scrollInfo) {
-              if (scrollInfo is ScrollStartNotification)
+              if (scrollInfo is ScrollStartNotification) {
                 _pausePolling();
-              else if (scrollInfo is ScrollEndNotification)
-                _resumePolling();
+              } else if (scrollInfo is ScrollEndNotification){
+                _resumePolling();}
               return false;
             },
             child: RefreshIndicator(
@@ -526,7 +525,6 @@ class _OrderCard extends StatelessWidget {
   final QueryGetXController queryController;
 
   const _OrderCard({
-    super.key,
     required this.order,
     required this.controller,
     required this.queryController,
@@ -544,39 +542,37 @@ class _OrderCard extends StatelessWidget {
     switch (order.status.toLowerCase()) {
       case 'new':
       case 'accepted':
-        statusBadgeColor = AppColors.danger.withOpacity(0.15);
+        statusBadgeColor = AppColors.danger.withValues(alpha:0.15);
         statusTextColor = AppColors.danger;
         break;
       case 'shipped':
       case 'delivered':
-        statusBadgeColor = AppColors.success.withOpacity(0.15);
+        statusBadgeColor = AppColors.success.withValues(alpha:0.15);
         statusTextColor = AppColors.success;
         break;
       case 'cancelled':
       case 'rejected':
       case 'returned':
-        statusBadgeColor = AppColors.textLight.withOpacity(0.1);
+        statusBadgeColor = AppColors.textLight.withValues(alpha:0.1);
         statusTextColor = AppColors.textLight;
         break;
       case 'hold':
-        statusBadgeColor = AppColors.accentOrange.withOpacity(0.15);
+        statusBadgeColor = AppColors.accentOrange.withValues(alpha:0.15);
         statusTextColor = AppColors.accentOrange;
         break;
       default:
-        statusBadgeColor = AppColors.textLight.withOpacity(0.1);
+        statusBadgeColor = AppColors.textLight.withValues(alpha:0.1);
         statusTextColor = AppColors.textLight;
     }
 
     String orderDate = 'N/A';
-    if (order.createdAt != null) {
-      orderDate = DateFormat(
-        'dd MMM yyyy, hh:mm a',
-      ).format(order.createdAt!.toLocal());
-    }
+    orderDate = DateFormat(
+      'dd MMM yyyy, hh:mm a',
+    ).format(order.createdAt.toLocal());
 
     // Logic for Query Button: delivered & has order.id
     bool canRaiseQuery =
-        (order.status.toLowerCase() == 'delivered' && order.id != null);
+        (order.status.toLowerCase() == 'delivered');
 
     // Main rendered UI:
     return Container(
@@ -584,10 +580,10 @@ class _OrderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.2), width: 1.0),
+        border: Border.all(color: Colors.grey.withValues(alpha:0.2), width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.grey.withValues(alpha:0.08),
             spreadRadius: 1,
             blurRadius: 6,
             offset: const Offset(0, 2),
@@ -642,10 +638,10 @@ class _OrderCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
+                      color: AppColors.success.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.success.withValues(alpha:0.3),
                       ),
                     ),
                     child: Row(
@@ -686,15 +682,14 @@ class _OrderCard extends StatelessWidget {
             // --- PRODUCT LIST ---
             ...order.items.map((item) {
               final String? imageUrl =
-                  item.productDetails?.images?.isNotEmpty == true
-                  ? item.productDetails!.images!.first
+                  item.productDetails?.images.isNotEmpty == true
+                  ? item.productDetails!.images.first
                   : null;
               final String productName = item.productDetails?.fullName ?? 'N/A';
               final String variantText =
-                  (item.variantName != null &&
-                      item.variantName!.isNotEmpty &&
+                  (item.variantName.isNotEmpty &&
                       item.variantName != 'Default')
-                  ? item.variantName!
+                  ? item.variantName
                   : '';
 
               return Padding(
@@ -973,20 +968,18 @@ class _OrderCard extends StatelessWidget {
                     controller.showReturnButton(order) ||
                     controller.showReviewButton(order);
                 final activeRequests =
-                    order.requests?.where((req) {
+                    order.requests.where((req) {
                       final String status = req.status.toLowerCase();
                       return status != 'rejected' && status != 'resolved';
-                    }).toList() ??
-                    [];
+                    }).toList();
 
                 bool hasActiveOrResolvedQuery =
-                    order.requests?.any(
+                    order.requests.any(
                       (req) =>
                           req.type.toLowerCase() == 'query' &&
                           (req.status.toLowerCase() != 'rejected' &&
                               req.status.toLowerCase() != 'cancelled'),
-                    ) ??
-                    false;
+                    );
 
                 if (!showAnyActionButton &&
                     activeRequests.isEmpty &&
@@ -1026,7 +1019,7 @@ class _OrderCard extends StatelessWidget {
                                 ),
                           ),
                         );
-                      }).toList(),
+                      }),
                       const SizedBox(height: 12),
                     ],
                     if (activeRequests.isNotEmpty &&
@@ -1039,103 +1032,101 @@ class _OrderCard extends StatelessWidget {
                         color: AppColors.neutralBackground,
                       ),
 
-                    if (order.id != null)
-                      Obx(() {
-                        final String? orderId = order.id;
-                        if (orderId == null) return const SizedBox.shrink();
+                    Obx(() {
+                      final String orderId = order.id;
 
-                        final bool hasQueryForThisOrder = queryController
-                            .myQueries
-                            .any(
-                              (query) =>
-                                  query.orderId?.toString() == orderId?.toString(),
-                            );
+                      final bool hasQueryForThisOrder = queryController
+                          .myQueries
+                          .any(
+                            (query) =>
+                                query.orderId?.toString() == orderId.toString(),
+                          );
 
-                        // Robust check: Is there any evidence of an existing query?
-                        final bool alreadyHasQuery = 
-                            hasQueryForThisOrder || 
-                            hasActiveOrResolvedQuery || 
-                            (order.query != null);
+                      // Robust check: Is there any evidence of an existing query?
+                      final bool alreadyHasQuery =
+                          hasQueryForThisOrder ||
+                          hasActiveOrResolvedQuery ||
+                          (order.query != null);
 
-                        if (alreadyHasQuery) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Get.to(() => QueryDetailScreen(order: order));
-                                },
-                                icon: const Icon(
-                                  Icons.info_outline,
-                                  size: 20,
+                      if (alreadyHasQuery) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Get.to(() => QueryDetailScreen(order: order));
+                              },
+                              icon: const Icon(
+                                Icons.info_outline,
+                                size: 20,
+                                color: AppColors.white,
+                              ),
+                              label: Text(
+                                'View Query',
+                                style: textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.white,
                                 ),
-                                label: Text(
-                                  'View Query',
-                                  style: textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.white,
-                                  ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.info,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.info,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
+                                elevation: 2,
                               ),
                             ),
-                          );
-                        } else if (canRaiseQuery) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Get.dialog(
-                                    RaiseQueryDialog(
-                                      orderId: order.id,
-                                      displayOrderId: order.orderId,
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 20,
+                          ),
+                        );
+                      } else if (canRaiseQuery) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Get.dialog(
+                                  RaiseQueryDialog(
+                                    orderId: order.id,
+                                    displayOrderId: order.orderId,
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.chat_bubble_outline,
+                                size: 20,
+                                color: AppColors.white,
+                              ),
+                              label: Text(
+                                'Raise Query',
+                                style: textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.white,
                                 ),
-                                label: Text(
-                                  'Raise Query',
-                                  style: textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.white,
-                                  ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.darkPurple,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.darkPurple,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
+                                elevation: 2,
                               ),
                             ),
-                          );
-                        } else {
-                          return const SizedBox.shrink();
-                        }
-                      }),
+                          ),
+                        );
+                      } else {
+                        return const SizedBox.shrink();
+                      }
+                    }),
 
                     if (controller.showCancelButton(order))
                       buildActionButton(
@@ -1278,7 +1269,7 @@ class _OrderCard extends StatelessWidget {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: color,
-              disabledBackgroundColor: color.withOpacity(0.5),
+              disabledBackgroundColor: color.withValues(alpha:0.5),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

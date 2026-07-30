@@ -38,7 +38,7 @@ class TabControllerGetX extends GetxController
 
   @override
   void onClose() {
-    print('[TabControllerGetX] 🗑 Disposing TabController');
+    debugPrint('[TabControllerGetX] 🗑 Disposing TabController');
     controller.dispose();
     super.onClose();
   }
@@ -63,7 +63,7 @@ class TabControllerGetX extends GetxController
     if (length <= 0) return;
     if (controller.length == length) return;
 
-    print('[TabControllerGetX] 🔄 Resetting controller with new length: $length');
+    debugPrint('[TabControllerGetX] 🔄 Resetting controller with new length: $length');
     
     final oldController = controller;
     

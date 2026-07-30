@@ -25,7 +25,6 @@ import 'package:mobiking/app/modules/splash_screen.dart';
 
 // Correct import paths for new screens/controllers/services
 // Ensure these paths are correct in your project structure
-import 'package:mobiking/app/controllers/BottomNavController.dart';
 import 'package:mobiking/app/controllers/address_controller.dart';
 import 'package:mobiking/app/controllers/cart_controller.dart';
 import 'package:mobiking/app/controllers/category_controller.dart';
@@ -34,7 +33,7 @@ import 'package:mobiking/app/controllers/query_getx_controller.dart';
 import 'package:mobiking/app/controllers/sub_category_controller.dart';
 import 'package:mobiking/app/controllers/wishlist_controller.dart';
 import 'package:mobiking/app/controllers/login_controller.dart';
-import 'package:mobiking/app/services/AddressService.dart';
+import 'package:mobiking/app/services/address_service.dart';
 import 'package:mobiking/app/services/login_service.dart';
 import 'package:mobiking/app/services/user_service.dart';
 import 'package:mobiking/app/services/order_service.dart';
@@ -42,18 +41,19 @@ import 'package:mobiking/app/services/query_service.dart';
 import 'package:mobiking/app/controllers/home_controller.dart';
 import 'package:mobiking/app/controllers/system_ui_controller.dart';
 import 'package:mobiking/app/controllers/tab_controller_getx.dart';
-import 'package:mobiking/app/services/Sound_Service.dart';
+import 'package:mobiking/app/services/sound_service.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:mobiking/app/services/connectivity_service.dart';
 import 'package:mobiking/app/controllers/connectivity_controller.dart';
 
 // ✅ ADD COUPON IMPORTS
+import 'app/controllers/bottom_nav_controller.dart';
 import 'app/controllers/coupon_controller.dart';
 import 'app/services/category_service.dart';
 import 'app/services/coupon_service.dart';
 
 import 'app/controllers/fcm_controller.dart';
-import 'app/data/ParentCategory.dart';
+import 'app/data/parent_category.dart';
 import 'app/data/key_information.dart';
 import 'app/data/selling_price.dart';
 import 'firebase_options.dart';
@@ -70,7 +70,7 @@ import 'dart:io';
 Future<void> _firebaseBackgroundMessagehandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  print("🔥 BACKGROUND MESSAGE RECEIVED! ID: ${message.messageId}");
+  debugPrint("🔥 BACKGROUND MESSAGE RECEIVED! ID: ${message.messageId}");
 
   final String title =
       message.notification?.title ?? message.data['title'] ?? "MobiKing";
@@ -145,7 +145,7 @@ Future<void> _firebaseBackgroundMessagehandler(RemoteMessage message) async {
         circularPath = null;
       }
     } catch (e) {
-      print("🔥 BACKGROUND IMAGE ERROR: $e");
+      debugPrint("🔥 BACKGROUND IMAGE ERROR: $e");
     }
   }
 
@@ -253,45 +253,45 @@ Future<void> _initializeHive() async {
     // Initialize Hive
     await Hive.initFlutter();
 
-    print('[Hive] Initializing Hive...');
+    debugPrint('[Hive] Initializing Hive...');
 
     // Register all adapters with their unique typeIds
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(SubCategoryAdapter()); // typeId: 0
-      print('[Hive] Registered SubCategoryAdapter');
+      debugPrint('[Hive] Registered SubCategoryAdapter');
     }
 
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(ParentCategoryAdapter()); // typeId: 1
-      print('[Hive] Registered ParentCategoryAdapter');
+      debugPrint('[Hive] Registered ParentCategoryAdapter');
     }
 
     if (!Hive.isAdapterRegistered(2)) {
       Hive.registerAdapter(ProductModelAdapter()); // typeId: 2
-      print('[Hive] Registered ProductModelAdapter');
+      debugPrint('[Hive] Registered ProductModelAdapter');
     }
 
     if (!Hive.isAdapterRegistered(3)) {
       Hive.registerAdapter(KeyInformationAdapter()); // typeId: 3
-      print('[Hive] Registered KeyInformationAdapter');
+      debugPrint('[Hive] Registered KeyInformationAdapter');
     }
 
     if (!Hive.isAdapterRegistered(4)) {
       Hive.registerAdapter(SellingPriceAdapter()); // typeId: 4
-      print('[Hive] Registered SellingPriceAdapter');
+      debugPrint('[Hive] Registered SellingPriceAdapter');
     }
 
     if (!Hive.isAdapterRegistered(5)) {
       Hive.registerAdapter(CategoryModelAdapter()); // typeId: 5
-      print('[Hive] Registered CategoryModelAdapter');
+      debugPrint('[Hive] Registered CategoryModelAdapter');
     }
 
-    print('[Hive] All adapters registered successfully');
+    debugPrint('[Hive] All adapters registered successfully');
 
     // Pre-open frequently used boxes for better performance (optional)
     await _preOpenBoxes();
   } catch (e) {
-    print('[Hive] Error initializing Hive: $e');
+    debugPrint('[Hive] Error initializing Hive: $e');
     // You might want to handle this error appropriately
     // For now, we'll continue without Hive functionality
   }
@@ -302,32 +302,32 @@ Future<void> _preOpenBoxes() async {
   try {
     // Open metadata box for cache timestamps
     await Hive.openBox<String>('metadata');
-    print('[Hive] Opened metadata box');
+    debugPrint('[Hive] Opened metadata box');
 
     // You can pre-open other boxes here if needed
     await Hive.openBox<SubCategory>('subcategories');
-    print('[Hive] Opened subcategories box');
+    debugPrint('[Hive] Opened subcategories box');
     await Hive.openBox<CategoryModel>('categories');
-    print('[Hive] Opened categories box');
+    debugPrint('[Hive] Opened categories box');
     await Hive.openBox<Map>('category_details');
-    print('[Hive] Opened category_details box');
+    debugPrint('[Hive] Opened category_details box');
   } catch (e) {
-    print('[Hive] Error pre-opening boxes: $e');
+    debugPrint('[Hive] Error pre-opening boxes: $e');
   }
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Get the ConnectivityController instance
-    final ConnectivityController connectivityController =
+
         Get.find<ConnectivityController>();
-    final LoginController loginController = Get.find<LoginController>();
+   Get.find<LoginController>();
 
     // Define your desired global padding/margin
-    const EdgeInsets globalPadding = EdgeInsets.symmetric(
+  EdgeInsets.symmetric(
       vertical: 0,
     ); // Changed to 0 as padding usually applies inside the widget structure, not to GetMaterialApp content directly. Adjust if needed.
 

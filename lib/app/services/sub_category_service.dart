@@ -36,7 +36,7 @@ class SubCategoryService {
   }
 
   void _log(String message) {
-    print('[SubCategoryService] $message');
+    debugPrint('[SubCategoryService] $message');
   }
 
   // Check if cached data is still valid

@@ -1,4 +1,5 @@
 // services/coupon_service.dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:get_storage/get_storage.dart';
@@ -28,7 +29,7 @@ class CouponService extends GetxService {
   final String _baseUrl = 'https://boxbudy.com/api/v1';
 
   void _log(String message) {
-    print('[CouponService] $message');
+    debugPrint('[CouponService] $message');
   }
 
   // Get authorization headers with access token

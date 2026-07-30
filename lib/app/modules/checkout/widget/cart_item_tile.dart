@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import '../../../controllers/cart_controller.dart';
 import '../../../data/product_model.dart';
-import 'package:collection/collection.dart';
 
 class CartItemTile extends StatelessWidget {
   final ProductModel product;
@@ -12,11 +11,11 @@ class CartItemTile extends StatelessWidget {
   final String variantName;
 
   const CartItemTile({
-    Key? key,
+    super.key,
     required this.product,
     required this.quantity,
     required this.variantName,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +26,8 @@ class CartItemTile extends StatelessWidget {
     double? originalPrice = product.regularPrice?.toDouble();
     int? variantStock;
 
-    if (product.sellingPrice.isNotEmpty &&
-        product.sellingPrice.last.price != null) {
-      displayPrice = product.sellingPrice.last.price!.toDouble();
+    if (product.sellingPrice.isNotEmpty) {
+      displayPrice = product.sellingPrice.last.price.toDouble();
     }
 
     variantStock = product.variants[variantName] ?? product.totalStock;
@@ -93,7 +91,7 @@ class CartItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.fullName ?? 'Unnamed Product',
+                  product.fullName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.titleSmall?.copyWith(
@@ -161,7 +159,7 @@ class CartItemTile extends StatelessWidget {
             final bool isDecrementDisabled = isThisItemLoading || quantity < 1;
             final bool isIncrementDisabled =
                 isThisItemLoading ||
-                (variantStock != null && quantity >= variantStock!);
+                (variantStock != null && quantity >= variantStock);
 
             return Container(
               margin: const EdgeInsets.symmetric(vertical: 10),
@@ -181,7 +179,7 @@ class CartItemTile extends StatelessWidget {
                         ? null
                         : () {
                             cartController.removeFromCart(
-                              productId: product.id!,
+                              productId: product.id,
                               variantName: variantName,
                             );
                           },
@@ -214,7 +212,7 @@ class CartItemTile extends StatelessWidget {
                         ? null
                         : () {
                             cartController.addToCart(
-                              productId: product.id!,
+                              productId: product.id,
                               variantName: variantName,
                             );
                           },
@@ -238,10 +236,10 @@ class CartItemTile extends StatelessWidget {
     required bool isLoading,
   }) {
     final Color buttonColor = isDisabled
-        ? AppColors.success.withOpacity(0.5)
+        ? AppColors.success.withValues(alpha: 0.5)
         : AppColors.success;
     final Color iconColor = isDisabled
-        ? AppColors.textLight.withOpacity(0.7)
+        ? AppColors.textLight.withValues(alpha: 0.7)
         : AppColors.white;
 
     return GestureDetector(

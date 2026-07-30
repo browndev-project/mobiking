@@ -1,20 +1,21 @@
 
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 void main() async {
   final logoFile = File('assets/images/logo.png');
   if (!logoFile.existsSync()) {
-    print('❌ Error: assets/images/logo.png not found');
+    debugPrint('❌ Error: assets/images/logo.png not found');
     return;
   }
 
-  print('🎨 SMART PROCESSING: Extracting silhouette from logo lines...');
+  debugPrint('🎨 SMART PROCESSING: Extracting silhouette from logo lines...');
   final bytes = await logoFile.readAsBytes();
   final original = img.decodeImage(bytes);
 
   if (original == null) {
-    print('❌ Error: Could not decode image');
+    debugPrint('❌ Error: Could not decode image');
     return;
   }
 
@@ -45,9 +46,9 @@ void main() async {
   }
 
   if (count == 0) {
-    print('⚠️ Warning: No logo pixels detected. Is the image already white?');
+    debugPrint('⚠️ Warning: No logo pixels detected. Is the image already white?');
   } else {
-    print('✨ Detected $count logo pixels. Creating silhouette...');
+    debugPrint('✨ Detected $count logo pixels. Creating silhouette...');
   }
 
   // Trim the image to the logo size
@@ -71,13 +72,13 @@ void main() async {
     
     final file = File('${dir.path}/ic_notification.png');
     await file.writeAsBytes(pngBytes);
-    print('✅ Saved Silhouette to: ${file.path}');
+    debugPrint('✅ Saved Silhouette to: ${file.path}');
   }
 
   // Also Copy the Colorful Logo for the Large Icon Fallback
   final largeIconTarget = File('android/app/src/main/res/drawable/ic_notification_large.png');
   await largeIconTarget.writeAsBytes(bytes); // Use original bytes from logo.png
-  print('✅ Saved Colorful Large Icon to: ${largeIconTarget.path}');
+  debugPrint('✅ Saved Colorful Large Icon to: ${largeIconTarget.path}');
 
-  print('\n🚀 SUCCESS: All notification assets (Silhouette + Colorful) are synchronized.');
+  debugPrint('\n🚀 SUCCESS: All notification assets (Silhouette + Colorful) are synchronized.');
 }

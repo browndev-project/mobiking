@@ -1,27 +1,22 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'package:mobiking/app/modules/home/widgets/FloatingCartButton.dart';
-import '../../controllers/cart_controller.dart' show CartController;
+import 'package:flutter/material.dart';
+
+import 'package:get/get.dart';
+
 import '../../controllers/category_controller.dart';
 import 'package:mobiking/app/controllers/home_controller.dart';
 import '../../controllers/sub_category_controller.dart';
 import '../../controllers/tab_controller_getx.dart';
 import '../../controllers/product_controller.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/CustomBottomBar.dart';
-import '../../widgets/CategoryTab.dart';
-import '../../widgets/CustomAppBar.dart';
-import '../../widgets/SearchTabSliverAppBar.dart' show SearchTabSliverAppBar;
 
-import 'package:mobiking/app/modules/home/widgets/HomeShimmer.dart';
-import 'package:mobiking/app/modules/home/widgets/_buildSectionView.dart';
+import '../../widgets/search_tab_sliver_app_bar.dart' show SearchTabSliverAppBar;
+
+import 'package:mobiking/app/modules/home/widgets/home_shimmer.dart';
+import 'package:mobiking/app/modules/home/widgets/_build_section_view.dart';
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -80,10 +75,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   void _triggerLoadMore() {
     if (productController.isFetchingMore.value ||
-        !productController.hasMoreProducts.value)
+        !productController.hasMoreProducts.value) {
       return;
+    }
 
-    print("🚀 Infinite scroll triggered from HomeScreen");
+    debugPrint("🚀 Infinite scroll triggered from HomeScreen");
     productController.fetchMoreProducts();
   }
 
@@ -95,15 +91,15 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  Future<void> _onRefresh() async {
-    print("🔄 Manual refresh triggered from HomeScreen");
+  Future<void> onRefresh() async {
+    debugPrint("🔄 Manual refresh triggered from HomeScreen");
     await Future.wait([
       productController.refreshProducts(),
       categoryController.refreshCategories(),
       subCategoryController.refreshSubCategories(),
       homeController.refreshAllData(),
     ]);
-    print("✅ All data refreshed");
+    debugPrint("✅ All data refreshed");
   }
 
   @override

@@ -11,11 +11,11 @@ class TopPicksCard extends StatelessWidget {
   final String heroTag;
 
   const TopPicksCard({
-    Key? key,
+    super.key,
     required this.product,
     this.onTap,
     required this.heroTag,
-  }) : super(key: key);
+  });
 
   // Define consistent dimensions for a square appearance
   static const double _cardSize = 130.0; // Overall size of the square card

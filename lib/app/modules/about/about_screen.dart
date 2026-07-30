@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobiking/app/data/CompanyDetail_model.dart';
+import 'package:mobiking/app/data/company_detail_model.dart';
 import 'package:mobiking/app/services/policy_service.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -56,7 +56,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 children: [
                   CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primaryPurple ?? Colors.blue,
+                      AppColors.primaryPurple,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -72,7 +72,7 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             );
           } else if (snapshot.hasError) {
-            print('Error fetching company details: ${snapshot.error}');
+            debugPrint('Error fetching company details: ${snapshot.error}');
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
@@ -109,7 +109,7 @@ class _AboutScreenState extends State<AboutScreen> {
                       icon: const Icon(Icons.refresh, size: 20),
                       label: const Text('Try Again'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryPurple ?? Colors.blue,
+                        backgroundColor: AppColors.primaryPurple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -132,7 +132,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 _refreshCompanyDetails();
                 await _companyDetailsFuture;
               },
-              color: AppColors.primaryPurple ?? Colors.blue,
+              color: AppColors.primaryPurple,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16.0),
@@ -155,7 +155,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -587,7 +587,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (AppColors.primaryPurple ?? Colors.blue).withOpacity(
+                    color: (AppColors.primaryPurple ).withValues(alpha:
                       0.1,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -595,7 +595,7 @@ class _AboutScreenState extends State<AboutScreen> {
                   child: Icon(
                     icon,
                     size: 20,
-                    color: AppColors.primaryPurple ?? Colors.blue,
+                    color: AppColors.primaryPurple ,
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -1,11 +1,9 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:get_storage/get_storage.dart';
-import 'package:flutter/material.dart';
-import 'dart:math'; // Add this for OTP generation
 
-import '../data/login_model.dart'; // Import UserModel
 import './user_service.dart'; // Import UserService
 import './analytics_service.dart';
 
@@ -29,15 +27,15 @@ class LoginService extends GetxService {
   // Inject the Dio instance, don't create it internally
   final dio.Dio _dio;
   final GetStorage box;
-  final UserService _userService; // Inject UserService
+  final UserService userService; // Inject UserService
 
   // Constructor to receive the Dio instance and GetStorage box
-  LoginService(this._dio, this.box, this._userService);
+  LoginService(this._dio, this.box, this.userService);
 
   final String _baseUrl = 'https://boxbudy.com/api/v1/users';
 
   void _log(String message) {
-    print('[LoginService] $message');
+    debugPrint('[LoginService] $message');
   }
 
   // UPDATED: Send OTP Method with improved error handling and testing display

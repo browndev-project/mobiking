@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../data/CompanyDetail_model.dart';
+import '../../data/company_detail_model.dart';
 import '../../services/policy_service.dart';
 import '../../themes/app_theme.dart';
 
@@ -163,7 +162,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryPurple.withOpacity(0.1),
+                    color: AppColors.primaryPurple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, size: 20, color: AppColors.primaryPurple),
@@ -303,10 +302,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
             width: (MediaQuery.of(context).size.width - 80) / 2,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             decoration: BoxDecoration(
-              color: (social['color'] as Color).withOpacity(0.1),
+              color: (social['color'] as Color).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: (social['color'] as Color).withOpacity(0.3),
+                color: (social['color'] as Color).withValues(alpha: 0.3),
                 width: 1,
               ),
             ),

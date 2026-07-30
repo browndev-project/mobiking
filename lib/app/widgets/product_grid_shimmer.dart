@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class ProductGridShimmer extends StatelessWidget {
-  const ProductGridShimmer({Key? key}) : super(key: key);
+  const ProductGridShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 400, // Fixed height to prevent unbounded constraints
       child: GridView.builder(
         shrinkWrap: true,

@@ -1,6 +1,5 @@
 // address_card_painter.dart
 import 'package:flutter/material.dart';
-import 'package:mobiking/app/themes/app_theme.dart'; // Assuming AppColors are defined here
 
 class AddressCardPainter extends CustomPainter {
   final Color backgroundColor;
@@ -30,7 +29,7 @@ class AddressCardPainter extends CustomPainter {
     // Draw an accent shape (e.g., a subtle curve or wave on one side)
     final accentPaint = Paint()
       ..color = accentColor
-          .withOpacity(isSelected ? 0.15 : 0.08) // Subtle opacity
+          .withValues(alpha: isSelected ? 0.15 : 0.08) // Subtle opacity
       ..style = PaintingStyle.fill;
 
     final accentPath = Path();
@@ -54,7 +53,7 @@ class AddressCardPainter extends CustomPainter {
 
     // Example: Draw small decorative circles or dots
     final dotPaint = Paint()
-      ..color = accentColor.withOpacity(isSelected ? 0.2 : 0.1)
+      ..color = accentColor.withValues(alpha: isSelected ? 0.2 : 0.1)
       ..style = PaintingStyle.fill;
 
     // Top right decorative dot

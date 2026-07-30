@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mobiking/app/data/Policy_model.dart';
+import 'package:mobiking/app/data/policy_model.dart';
 import 'package:mobiking/app/modules/policy/policy_detail_screen.dart';
 import 'package:mobiking/app/services/policy_service.dart';
 import 'package:mobiking/app/themes/app_theme.dart';
@@ -55,7 +55,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
                 children: [
                   CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primaryPurple ?? Colors.blue,
+                      AppColors.primaryPurple,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -71,7 +71,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
               ),
             );
           } else if (snapshot.hasError) {
-            print('Error fetching policies: ${snapshot.error}');
+            debugPrint('Error fetching policies: ${snapshot.error}');
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
@@ -108,7 +108,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
                       icon: const Icon(Icons.refresh, size: 20),
                       label: const Text('Try Again'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryPurple ?? Colors.blue,
+                        backgroundColor: AppColors.primaryPurple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -164,7 +164,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
                         label: const Text('Refresh'),
                         style: TextButton.styleFrom(
                           foregroundColor:
-                              AppColors.primaryPurple ?? Colors.blue,
+                              AppColors.primaryPurple,
                         ),
                       ),
                     ],
@@ -178,7 +178,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
                 _refreshPolicies();
                 await _policiesFuture;
               },
-              color: AppColors.primaryPurple ?? Colors.blue,
+              color: AppColors.primaryPurple,
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
@@ -252,14 +252,14 @@ class _PolicyScreenState extends State<PolicyScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: (AppColors.primaryPurple ?? Colors.blue).withOpacity(
+                  color: (AppColors.primaryPurple ).withValues(alpha:
                     0.1,
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   _getPolicyIcon(policy.policyName),
-                  color: AppColors.primaryPurple ?? Colors.blue,
+                  color: AppColors.primaryPurple ,
                   size: 24,
                 ),
               ),

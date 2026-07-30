@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import '../data/QueryModel.dart';
+import '../data/query_model.dart';
 import '../services/query_service.dart';
 import '../themes/app_theme.dart';
 
@@ -73,7 +73,7 @@ class QueryGetXController extends GetxController {
     ever(_currentQuery, (QueryModel? query) {
       if (query != null) {
         _startConversationPolling();
-        _updateConversationStream(query.replies ?? []);
+        _updateConversationStream(query.replies);
       } else {
         _stopConversationPolling();
       }
@@ -119,18 +119,18 @@ class QueryGetXController extends GetxController {
     if (_currentQuery.value?.id == null) return;
     try {
       final updatedQuery = await _queryService.getQueryById(
-        _currentQuery.value!.id!,
+        _currentQuery.value!.id,
       );
-      final currentRepliesCount = _currentQuery.value?.replies?.length ?? 0;
-      final newRepliesCount = updatedQuery.replies?.length ?? 0;
+      final currentRepliesCount = _currentQuery.value?.replies.length ?? 0;
+      final newRepliesCount = updatedQuery.replies.length;
       if (newRepliesCount > currentRepliesCount) {
         _currentQuery.value = updatedQuery;
         _updateQueryInList(updatedQuery);
-        _updateConversationStream(updatedQuery.replies ?? []);
+        _updateConversationStream(updatedQuery.replies);
         _showNewMessageNotification();
       }
     } catch (e) {
-      print('QueryGetXController: Error polling conversation: $e');
+      debugPrint('QueryGetXController: Error polling conversation: $e');
     }
   }
 
@@ -247,7 +247,7 @@ class QueryGetXController extends GetxController {
       await _fetchAndLoadMyQueries();
       // Use .toString() to avoid type mismatch bugs!
       final queryForOrder = _myQueries
-          .where((query) => query.orderId?.toString() == orderId?.toString())
+          .where((query) => query.orderId?.toString() == orderId.toString())
           .toList();
       if (queryForOrder.isNotEmpty) {
         queryForOrder.sort(
@@ -277,7 +277,7 @@ class QueryGetXController extends GetxController {
       final query = await _queryService.getQueryById(queryId);
       _currentQuery.value = query;
       _updateQueryInList(query);
-      _updateConversationStream(query.replies ?? []);
+      _updateConversationStream(query.replies);
     } catch (e) {
       _errorMessage.value = _getFriendlyErrorMessage(
         e,
@@ -293,11 +293,11 @@ class QueryGetXController extends GetxController {
     try {
       _isLoadingReplies.value = true;
       final refreshedQuery = await _queryService.getQueryById(
-        _currentQuery.value!.id!,
+        _currentQuery.value!.id,
       );
       _currentQuery.value = refreshedQuery;
       _updateQueryInList(refreshedQuery);
-      _updateConversationStream(refreshedQuery.replies ?? []);
+      _updateConversationStream(refreshedQuery.replies);
     } catch (e) {
       _errorMessage.value = _getFriendlyErrorMessage(
         e,
@@ -310,7 +310,7 @@ class QueryGetXController extends GetxController {
 
   void setCurrentQuery(QueryModel query) {
     _currentQuery.value = query;
-    _updateConversationStream(query.replies ?? []);
+    _updateConversationStream(query.replies);
   }
 
   void clearCurrentQuery() {
@@ -396,7 +396,7 @@ class QueryGetXController extends GetxController {
   QueryModel? getQueryByOrderId(String orderId) {
     // Defensive, use .toString() in comparison for all cases!
     return _myQueries.firstWhereOrNull(
-      (query) => query.orderId?.toString() == orderId?.toString(),
+      (query) => query.orderId?.toString() == orderId.toString(),
     );
   }
 

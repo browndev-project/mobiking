@@ -172,7 +172,7 @@ class CouponController extends GetxController {
           errorMessage.value = '';
         }
       } else {
-        _showError(response.message ?? 'Invalid coupon');
+        _showError(response.message );
         resetCouponState(); // Reset state if coupon is invalid
       }
     } on CouponServiceException catch (e) {
@@ -318,7 +318,7 @@ class CouponController extends GetxController {
           if (typeStr == 'first_time' || coupon.isFirstOrderOnly) {
             final orderController = Get.find<OrderController>();
             // LOGGING: Crucial to see why it's hidden
-            print('Coupon Visibility: Checking ${coupon.code}. Order History Length: ${orderController.orderHistory.length}');
+            debugPrint('Coupon Visibility: Checking ${coupon.code}. Order History Length: ${orderController.orderHistory.length}');
             if (orderController.orderHistory.isNotEmpty) {
               return false; 
             }
@@ -350,7 +350,7 @@ class CouponController extends GetxController {
         availableCoupons.value = filteredList;
       }
     } catch (e) {
-      print('Error fetching available coupons: $e');
+      debugPrint('Error fetching available coupons: $e');
     } finally {
       isLoading.value = false;
     }

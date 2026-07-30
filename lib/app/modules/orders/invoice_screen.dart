@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -15,7 +14,7 @@ class InvoiceScreen extends StatelessWidget {
   const InvoiceScreen({super.key, required this.order});
 
   // 🧮 Financial calculations
-  double _calculateTotalMRP() {
+  double calculateTotalMRP() {
     double totalMrp = 0;
     for (var item in order.items) {
       totalMrp += item.price.toDouble() * item.quantity;
@@ -23,7 +22,7 @@ class InvoiceScreen extends StatelessWidget {
     return totalMrp;
   }
 
-  double _calculateProductDiscount() {
+  double calculateProductDiscount() {
     double totalMrp = 0;
     double totalSellingPrice = 0;
     for (var item in order.items) {
@@ -43,25 +42,25 @@ class InvoiceScreen extends StatelessWidget {
       case 'accepted':
         return {
           'color': AppColors.info,
-          'bgColor': AppColors.info.withOpacity(0.12),
+          'bgColor': AppColors.info.withValues(alpha: 0.12),
           'icon': Icons.new_releases_outlined,
         };
       case 'hold':
         return {
           'color': AppColors.accentOrange,
-          'bgColor': AppColors.accentOrange.withOpacity(0.12),
+          'bgColor': AppColors.accentOrange.withValues(alpha:0.12),
           'icon': Icons.pause_circle_outline,
         };
       case 'shipped':
         return {
           'color': AppColors.primaryPurple,
-          'bgColor': AppColors.primaryPurple.withOpacity(0.12),
+          'bgColor': AppColors.primaryPurple.withValues(alpha:0.12),
           'icon': Icons.local_shipping_outlined,
         };
       case 'delivered':
         return {
           'color': AppColors.success,
-          'bgColor': AppColors.success.withOpacity(0.12),
+          'bgColor': AppColors.success.withValues(alpha:0.12),
           'icon': Icons.check_circle_outline,
         };
       case 'cancelled':
@@ -69,7 +68,7 @@ class InvoiceScreen extends StatelessWidget {
       case 'returned':
         return {
           'color': AppColors.danger,
-          'bgColor': AppColors.danger.withOpacity(0.12),
+          'bgColor': AppColors.danger.withValues(alpha:0.12),
           'icon': Icons.cancel_outlined,
         };
       default:
@@ -82,7 +81,7 @@ class InvoiceScreen extends StatelessWidget {
   }
 
   // 🧾 PDF Invoice Generation
-  Future<void> _downloadInvoice() async {
+  Future<void> downloadInvoice() async {
     try {
       final pdf = pw.Document();
       final font = await PdfGoogleFonts.robotoRegular();
@@ -101,7 +100,7 @@ class InvoiceScreen extends StatelessWidget {
       final String invoiceNo =
           "GST-${order.orderId.substring(order.orderId.length >= 6 ? order.orderId.length - 6 : 0).toUpperCase()}";
       final String actualDate = DateFormat('dd/MM/yyyy').format(
-        order.createdAt != null ? order.createdAt.toLocal() : DateTime.now(),
+        order.createdAt.toLocal(),
       );
 
       pdf.addPage(
@@ -372,7 +371,7 @@ class InvoiceScreen extends StatelessWidget {
                           order.items
                               .fold(
                                 0,
-                                (sum, item) => (sum as int) + item.quantity,
+                                (sum, item) => (sum) + item.quantity,
                               )
                               .toString(),
                           mediumFont,
@@ -694,7 +693,7 @@ class InvoiceScreen extends StatelessWidget {
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e, stackTrace) {
-      print('Error generating invoice: $e\n$stackTrace');
+      debugPrint('Error generating invoice: $e\n$stackTrace');
       Get.snackbar(
         'Error',
         'Failed to generate invoice.',
@@ -705,12 +704,7 @@ class InvoiceScreen extends StatelessWidget {
   }
 
   // Updated to include structural wrapping for absolute centering/alignment
-  pw.Widget _buildTableCell(
-    String text,
-    pw.Font font,
-    double fontSize, {
-    bool isHeader = false,
-  }) {
+  pw.Widget _buildTableCell(String text, pw.Font font, double fontSize, {bool isHeader = false,}) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(5),
       alignment: isHeader ? pw.Alignment.center : pw.Alignment.centerLeft,
@@ -751,8 +745,9 @@ class InvoiceScreen extends StatelessWidget {
 
     int thousands = total ~/ 1000;
     total %= 1000;
-    if (thousands > 0)
+    if (thousands > 0) {
       words += "${_convertLessThanThousand(thousands)} Thousand ";
+    }
 
     if (total > 0) words += _convertLessThanThousand(total);
 
@@ -796,8 +791,9 @@ class InvoiceScreen extends StatelessWidget {
     ];
 
     if (n < 20) return units[n];
-    if (n < 100)
+    if (n < 100) {
       return "${tens[n ~/ 10]}${n % 10 != 0 ? " ${units[n % 10]}" : ""}";
+    }
     return "${units[n ~/ 100]} Hundred${n % 100 != 0 ? " and ${_convertLessThanThousand(n % 100)}" : ""}";
   }
 
@@ -808,9 +804,7 @@ class InvoiceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final statusConfig = _getStatusConfig(order.status);
-    final orderDate = order.createdAt != null
-        ? DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!.toLocal())
-        : 'N/A';
+    final orderDate = DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt.toLocal());
 
     String? deliveryTime;
     if (order.deliveredAt != null && order.deliveredAt!.isNotEmpty) {
@@ -858,7 +852,7 @@ class InvoiceScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -877,7 +871,7 @@ class InvoiceScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          order.orderId ?? 'N/A',
+                          order.orderId,
                           style: textTheme.titleSmall?.copyWith(
                             color: AppColors.primaryPurple,
                           ),
@@ -975,10 +969,10 @@ class InvoiceScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 16),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.05),
+                        color: AppColors.danger.withValues(alpha:0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.danger.withOpacity(0.3),
+                          color: AppColors.danger.withValues(alpha:0.3),
                         ),
                       ),
                       child: Column(
@@ -1033,10 +1027,10 @@ class InvoiceScreen extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.danger.withOpacity(0.05),
+                    color: AppColors.danger.withValues(alpha:0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.danger.withOpacity(0.3),
+                      color: AppColors.danger.withValues(alpha:0.3),
                     ),
                   ),
                   child: Column(
@@ -1088,7 +1082,7 @@ class InvoiceScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1131,7 +1125,7 @@ class InvoiceScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1200,7 +1194,7 @@ class InvoiceScreen extends StatelessWidget {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -1213,15 +1207,15 @@ class InvoiceScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.primaryPurple.withOpacity(0.05),
-                      AppColors.lightPurple.withOpacity(0.1),
+                      AppColors.primaryPurple.withValues(alpha:0.05),
+                      AppColors.lightPurple.withValues(alpha:0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primaryPurple.withOpacity(0.2),
+                    color: AppColors.primaryPurple.withValues(alpha:0.2),
                     width: 1,
                   ),
                 ),
@@ -1302,12 +1296,7 @@ class InvoiceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryRow(
-    String label,
-    String value,
-    TextTheme textTheme,
-    bool isTotal,
-  ) {
+  Widget _buildSummaryRow(String label, String value, TextTheme textTheme, bool isTotal,) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
